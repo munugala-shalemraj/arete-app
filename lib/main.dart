@@ -14,6 +14,9 @@ Future<void> main() async {
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,
     anonKey: SupabaseConfig.supabaseAnonKey,
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.implicit,
+    ),
   );
 
   runApp(
@@ -32,7 +35,6 @@ class AreteApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Rebuild router when auth state changes so redirects fire correctly
     context.watch<AuthProvider>();
 
     return MaterialApp.router(

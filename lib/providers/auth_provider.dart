@@ -21,15 +21,20 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void _init() {
-    _user = _authService.currentUser;
-    _status = _user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated;
-
-    _authService.authStateChanges.listen((event) {
-      _user = event.session?.user;
+    try {
+      _user = _authService.currentUser;
       _status = _user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated;
-      _errorMessage = null;
-      notifyListeners();
-    });
+
+      _authService.authStateChanges.listen((event) {
+        _user = event.session?.user;
+        _status = _user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated;
+        _errorMessage = null;
+        notifyListeners();
+      });
+    } catch (e) {
+      debugPrint('[AuthProvider] init error: $e');
+      _status = AuthStatus.unauthenticated;
+    }
   }
 
   Future<bool> signIn({required String email, required String password}) async {
