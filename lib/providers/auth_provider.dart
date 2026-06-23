@@ -17,23 +17,30 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _status == AuthStatus.authenticated;
 
   AuthProvider() {
-    _init();
+    // Delay by one microtask to ensure Supabase is fully settled on web
+    Future.microtask(_init);
   }
 
-  void _init() {
+  Future<void> _init() async {
     try {
       _user = _authService.currentUser;
-      _status = _user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated;
+      _status = _user != null
+          ? AuthStatus.authenticated
+          : AuthStatus.unauthenticated;
+      notifyListeners();
 
       _authService.authStateChanges.listen((event) {
         _user = event.session?.user;
-        _status = _user != null ? AuthStatus.authenticated : AuthStatus.unauthenticated;
+        _status = _user != null
+            ? AuthStatus.authenticated
+            : AuthStatus.unauthenticated;
         _errorMessage = null;
         notifyListeners();
       });
     } catch (e) {
       debugPrint('[AuthProvider] init error: $e');
       _status = AuthStatus.unauthenticated;
+      notifyListeners();
     }
   }
 

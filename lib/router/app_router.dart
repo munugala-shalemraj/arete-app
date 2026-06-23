@@ -15,13 +15,17 @@ import '../models/lesson.dart';
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
   redirect: (context, state) {
-    final user = Supabase.instance.client.auth.currentUser;
-    final loc = state.matchedLocation;
-    final publicRoutes = ['/', '/login', '/register'];
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      final loc = state.matchedLocation;
+      final publicRoutes = ['/', '/login', '/register'];
 
-    if (user == null && !publicRoutes.contains(loc)) return '/login';
-    if (user != null && (loc == '/login' || loc == '/register')) return '/home';
-    return null;
+      if (user == null && !publicRoutes.contains(loc)) return '/login';
+      if (user != null && (loc == '/login' || loc == '/register')) return '/home';
+      return null;
+    } catch (_) {
+      return '/login';
+    }
   },
   routes: [
     GoRoute(
