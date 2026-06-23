@@ -25,11 +25,14 @@ Future<void> main() async {
       await Supabase.initialize(
         url: SupabaseConfig.supabaseUrl,
         anonKey: SupabaseConfig.supabaseAnonKey,
+        authOptions: const FlutterAuthClientOptions(
+          authFlowType: AuthFlowType.implicit,
+          persistSession: false,  // Bypass localStorage on GitHub Pages
+        ),
       );
       debugPrint('Supabase initialized OK');
     } catch (e, st) {
       debugPrint('Supabase init error: $e\n$st');
-      // Continue anyway — app will show login screen
     }
 
     runApp(
