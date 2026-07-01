@@ -49,6 +49,21 @@
     <span>Loading Arete...</span>
   </div>
   <script>
+    // Guard against supabase-js localStorage.init() crash on static hosts
+    (function() {
+      if (typeof window.localStorage === 'undefined' || window.localStorage === null) {
+        var _store = {};
+        window.localStorage = {
+          getItem: function(k) { return _store[k] !== undefined ? _store[k] : null; },
+          setItem: function(k, v) { _store[k] = String(v); },
+          removeItem: function(k) { delete _store[k]; },
+          clear: function() { _store = {}; },
+          key: function(i) { return Object.keys(_store)[i] || null; },
+          get length() { return Object.keys(_store).length; }
+        };
+      }
+    })();
+
     // Remove loading indicator once Flutter starts
     window.addEventListener('flutter-first-frame', function() {
       var loading = document.getElementById('loading');

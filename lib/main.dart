@@ -27,7 +27,6 @@ Future<void> main() async {
         anonKey: SupabaseConfig.supabaseAnonKey,
         authOptions: const FlutterAuthClientOptions(
           authFlowType: AuthFlowType.implicit,
-          persistSession: false,  // Bypass localStorage on GitHub Pages
         ),
       );
       debugPrint('Supabase initialized OK');
