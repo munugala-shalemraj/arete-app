@@ -11,16 +11,16 @@ import 'providers/user_provider.dart';
 import 'router/app_router.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Catch all Flutter framework errors
-  FlutterError.onError = (FlutterErrorDetails details) {
-    debugPrint('FlutterError: ${details.exception}');
-    debugPrint('Stack: ${details.stack}');
-  };
-
   // Catch all async errors
   await runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+
+    // Catch all Flutter framework errors
+    FlutterError.onError = (FlutterErrorDetails details) {
+      debugPrint('FlutterError: ${details.exception}');
+      debugPrint('Stack: ${details.stack}');
+    };
+
     try {
       await Supabase.initialize(
         url: SupabaseConfig.supabaseUrl,

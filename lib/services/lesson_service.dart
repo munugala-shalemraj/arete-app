@@ -8,7 +8,7 @@ class LessonService {
     final data = await _client
         .from('topics')
         .select()
-        .order('order_index');
+        .order('order_index', ascending: true);
     return (data as List).map((e) => Topic.fromJson(e)).toList();
   }
 
@@ -17,7 +17,7 @@ class LessonService {
         .from('lessons')
         .select()
         .eq('topic_id', topicId)
-        .order('order_index');
+        .order('order_index', ascending: true);
     return (data as List).map((e) => Lesson.fromJson(e)).toList();
   }
 
