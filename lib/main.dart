@@ -9,6 +9,7 @@ import 'config/supabase_config.dart';
 import 'providers/auth_provider.dart';
 import 'providers/user_provider.dart';
 import 'router/app_router.dart';
+import 'utils/in_memory_storage.dart';
 
 Future<void> main() async {
   // Catch all async errors
@@ -25,8 +26,10 @@ Future<void> main() async {
       await Supabase.initialize(
         url: SupabaseConfig.supabaseUrl,
         anonKey: SupabaseConfig.supabaseAnonKey,
-        authOptions: const FlutterAuthClientOptions(
+        authOptions: FlutterAuthClientOptions(
           authFlowType: AuthFlowType.implicit,
+          // Use in-memory storage on web to avoid localStorage.init() crash
+          localStorage: kIsWeb ? InMemoryLocalStorage() : null,
         ),
       );
       debugPrint('Supabase initialized OK');
