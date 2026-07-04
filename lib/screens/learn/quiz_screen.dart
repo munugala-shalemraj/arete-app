@@ -164,7 +164,9 @@ class _QuizScreenState extends State<QuizScreen> {
             _selectedOption = null;
             _checked = false;
             _score = 0;
+            _loading = true;
           });
+          _load(); // re-fetch and re-shuffle
         } : null,
       ),
     );

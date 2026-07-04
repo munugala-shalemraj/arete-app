@@ -19,7 +19,6 @@ import '../profile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -66,19 +65,32 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: const Color(0xFF0A0A1F),
       appBar: _selectedIndex == 0
           ? AppBar(
-              backgroundColor: const Color(0xFF0F0F1A),
+              backgroundColor: const Color(0xFF0A0A1F),
               elevation: 0,
-              title: Text(
-                'Arete',
-                style: GoogleFonts.outfit(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFFC9A84C),
+              title: Row(children: [
+                Container(
+                  width: 32, height: 32,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFFD700), Color(0xFFF4A200)]),
+                    borderRadius: BorderRadius.circular(9),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFFD700).withOpacity(0.4),
+                        blurRadius: 10),
+                    ],
+                  ),
+                  child: const Icon(Icons.auto_graph, color: Colors.black, size: 18),
                 ),
-              ),
+                const SizedBox(width: 10),
+                Text('Arete',
+                  style: GoogleFonts.outfit(
+                    fontSize: 24, fontWeight: FontWeight.w800,
+                    color: const Color(0xFFFFD700))),
+              ]),
               actions: [
                 if (profile != null)
                   Padding(
@@ -102,17 +114,30 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           : null,
       body: screens[_selectedIndex],
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: const Color(0xFF1A1A2E),
-        indicatorColor: const Color(0xFFC9A84C).withOpacity(0.18),
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (i) => setState(() => _selectedIndex = i),
-        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        destinations: List.generate(5, (i) => NavigationDestination(
-          icon: Icon(_icons[i], color: Colors.white38),
-          selectedIcon: Icon(_selectedIcons[i], color: const Color(0xFFC9A84C)),
-          label: _labels[i],
-        )),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF12122A),
+          border: const Border(top: BorderSide(color: Colors.white10)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.4),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: NavigationBar(
+          backgroundColor: Colors.transparent,
+          indicatorColor: const Color(0xFFFFD700).withOpacity(0.15),
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+          labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+          destinations: List.generate(5, (i) => NavigationDestination(
+            icon: Icon(_icons[i], color: Colors.white30),
+            selectedIcon: Icon(_selectedIcons[i], color: const Color(0xFFFFD700)),
+            label: _labels[i],
+          )),
+        ),
       ),
     );
   }
@@ -121,7 +146,6 @@ class _HomeScreenState extends State<HomeScreen> {
 class _HomeTab extends StatefulWidget {
   final ValueChanged<int> onNavigate;
   const _HomeTab({required this.onNavigate});
-
   @override
   State<_HomeTab> createState() => _HomeTabState();
 }
@@ -180,180 +204,178 @@ class _HomeTabState extends State<_HomeTab> {
   Widget build(BuildContext context) {
     final profile = context.watch<UserProvider>().profile;
     final now = DateTime.now();
-    final greeting = now.hour < 12
-        ? 'Good morning'
-        : now.hour < 17
-            ? 'Good afternoon'
-            : 'Good evening';
+    final greeting = now.hour < 12 ? 'Good morning' :
+        now.hour < 17 ? 'Good afternoon' : 'Good evening';
     final displayName = profile?.displayName ?? profile?.username ?? 'there';
     final dateStr = DateFormat('EEEE, d MMMM').format(now);
 
     return RefreshIndicator(
       onRefresh: _loadStats,
-      color: const Color(0xFFC9A84C),
-      backgroundColor: const Color(0xFF1A1A2E),
+      color: const Color(0xFFFFD700),
+      backgroundColor: const Color(0xFF1A1A3E),
       child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           // Greeting
-          Text(
-            '$greeting, $displayName 👋',
+          Text('$greeting, $displayName 👋',
             style: GoogleFonts.outfit(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
+              fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
           const SizedBox(height: 4),
-          Text(
-            dateStr,
-            style: GoogleFonts.outfit(fontSize: 14, color: Colors.white38),
-          ),
+          Text(dateStr,
+            style: GoogleFonts.outfit(fontSize: 14, color: Colors.white38)),
           const SizedBox(height: 24),
 
           // Stats row
-          if (_loading)
-            _shimmerRow()
-          else
-            Row(children: [
-              _StatChip(
-                label: 'Lessons',
-                value: '$_lessonsCompleted',
-                icon: Icons.menu_book,
-                color: const Color(0xFF4F8EF7),
-              ),
-              const SizedBox(width: 10),
-              _StatChip(
-                label: 'Streak',
-                value: '${profile?.streakDays ?? 0}d',
-                icon: Icons.local_fire_department,
-                color: const Color(0xFFC9A84C),
-              ),
-              const SizedBox(width: 10),
-              _StatChip(
-                label: 'Quizzes',
-                value: '$_quizzesCompleted',
-                icon: Icons.quiz,
-                color: const Color(0xFF4CAF50),
-              ),
-            ]),
+          if (_loading) _shimmerRow()
+          else Row(children: [
+            _StatChip(
+              label: 'Lessons',
+              value: '$_lessonsCompleted',
+              icon: Icons.menu_book,
+              gradient: const [Color(0xFF4B8BBE), Color(0xFF6C5CE7)],
+            ),
+            const SizedBox(width: 10),
+            _StatChip(
+              label: 'Streak',
+              value: '${profile?.streakDays ?? 0}d',
+              icon: Icons.local_fire_department,
+              gradient: const [Color(0xFFFF6B35), Color(0xFFFFD700)],
+            ),
+            const SizedBox(width: 10),
+            _StatChip(
+              label: 'Quizzes',
+              value: '$_quizzesCompleted',
+              icon: Icons.quiz,
+              gradient: const [Color(0xFF00D4AA), Color(0xFF00B894)],
+            ),
+          ]),
 
           const SizedBox(height: 28),
 
-          // Today's lesson
-          Text(
-            'Continue Learning',
-            style: GoogleFonts.outfit(
-              fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
-          ),
+          // Continue Learning
+          Row(children: [
+            Text('Continue Learning',
+              style: GoogleFonts.outfit(
+                fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
+            const Spacer(),
+            GestureDetector(
+              onTap: () => widget.onNavigate(1),
+              child: Text('See all',
+                style: GoogleFonts.outfit(
+                  fontSize: 13, color: const Color(0xFF4B8BBE),
+                  fontWeight: FontWeight.w600)),
+            ),
+          ]),
           const SizedBox(height: 12),
-          if (_loading)
-            _shimmerCard()
+          if (_loading) _shimmerCard()
           else if (_nextLesson != null)
             _NextLessonCard(
               lesson: _nextLesson!,
-              onTap: () => context.push(
-                '/lesson/${_nextLesson!.id}',
-                extra: _nextLesson,
-              ),
+              onTap: () => context.push('/lesson/${_nextLesson!.id}',
+                extra: _nextLesson),
             )
           else
             _AllDoneCard(),
 
           const SizedBox(height: 28),
 
+          // Learning path mini-preview
+          _LearningPathSection(),
+
+          const SizedBox(height: 28),
+
           // Quick actions
-          Text(
-            'Quick Actions',
+          Text('Quick Actions',
             style: GoogleFonts.outfit(
-              fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
-          ),
+              fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
           const SizedBox(height: 12),
           Row(children: [
             _QuickAction(
               label: 'Skill Map',
               icon: Icons.radar,
-              color: const Color(0xFF4F8EF7),
+              gradient: const [Color(0xFF4B8BBE), Color(0xFF6C5CE7)],
               onTap: () => widget.onNavigate(2),
             ),
             const SizedBox(width: 12),
             _QuickAction(
               label: 'Pre/Post Test',
               icon: Icons.assignment,
-              color: const Color(0xFFC9A84C),
+              gradient: const [Color(0xFFFFD700), Color(0xFFF4A200)],
               onTap: () => context.push('/test'),
             ),
             const SizedBox(width: 12),
             _QuickAction(
               label: 'Leaderboard',
               icon: Icons.leaderboard,
-              color: const Color(0xFF4CAF50),
+              gradient: const [Color(0xFF00D4AA), Color(0xFF00B894)],
               onTap: () => widget.onNavigate(3),
             ),
           ]),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
   Widget _shimmerRow() => Shimmer.fromColors(
-        baseColor: const Color(0xFF1A1A2E),
-        highlightColor: const Color(0xFF2A2A3E),
-        child: Row(children: List.generate(3, (_) => Expanded(
-          child: Container(
-            margin: const EdgeInsets.only(right: 10),
-            height: 80,
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A1A2E),
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-        ))),
-      );
+    baseColor: const Color(0xFF1A1A3E),
+    highlightColor: const Color(0xFF2A2A4E),
+    child: Row(children: List.generate(3, (_) => Expanded(
+      child: Container(
+        margin: const EdgeInsets.only(right: 10),
+        height: 88,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A3E),
+          borderRadius: BorderRadius.circular(16)),
+      ),
+    ))),
+  );
 
   Widget _shimmerCard() => Shimmer.fromColors(
-        baseColor: const Color(0xFF1A1A2E),
-        highlightColor: const Color(0xFF2A2A3E),
-        child: Container(
-          height: 110,
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1A2E),
-            borderRadius: BorderRadius.circular(18),
-          ),
-        ),
-      );
+    baseColor: const Color(0xFF1A1A3E),
+    highlightColor: const Color(0xFF2A2A4E),
+    child: Container(
+      height: 100,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A3E),
+        borderRadius: BorderRadius.circular(20)),
+    ),
+  );
 }
 
 class _StatChip extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
-  final Color color;
+  final List<Color> gradient;
+
   const _StatChip({
     required this.label, required this.value,
-    required this.icon, required this.color,
+    required this.icon, required this.gradient,
   });
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withOpacity(0.06)),
+          gradient: LinearGradient(
+            colors: gradient.map((c) => c.withOpacity(0.15)).toList(),
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: gradient.first.withOpacity(0.3)),
         ),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(icon, color: color, size: 20),
+          Icon(icon, color: gradient.first, size: 22),
           const SizedBox(height: 6),
           Text(value,
             style: GoogleFonts.outfit(
-              fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white),
-          ),
+              fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
           Text(label,
-            style: GoogleFonts.outfit(fontSize: 11, color: Colors.white38),
-          ),
+            style: GoogleFonts.outfit(fontSize: 11, color: Colors.white38)),
         ]),
       ),
     );
@@ -365,48 +387,75 @@ class _NextLessonCard extends StatelessWidget {
   final VoidCallback onTap;
   const _NextLessonCard({required this.lesson, required this.onTap});
 
+  static const _tierGradients = {
+    'foundations': [Color(0xFF4B8BBE), Color(0xFF6C5CE7)],
+    'data_handling': [Color(0xFFFFD700), Color(0xFFFF6B35)],
+    'applied': [Color(0xFF00D4AA), Color(0xFF00B894)],
+  };
+
   @override
   Widget build(BuildContext context) {
+    final gradColors = _tierGradients[lesson.levelTier.name] ??
+        [const Color(0xFF4B8BBE), const Color(0xFF6C5CE7)];
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1A1A2E), Color(0xFF22203A)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight,
+          gradient: LinearGradient(
+            colors: gradColors.map((c) => c.withOpacity(0.2)).toList(),
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFC9A84C).withOpacity(0.4)),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: gradColors.first.withOpacity(0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: gradColors.first.withOpacity(0.2),
+              blurRadius: 20,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Row(children: [
           Container(
-            width: 52, height: 52,
+            width: 56, height: 56,
             decoration: BoxDecoration(
-              color: const Color(0xFFC9A84C).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(14),
+              gradient: LinearGradient(colors: gradColors),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: gradColors.first.withOpacity(0.4),
+                  blurRadius: 12),
+              ],
             ),
-            child: const Icon(Icons.play_arrow_rounded,
-              color: Color(0xFFC9A84C), size: 28),
+            child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 30),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           Expanded(child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Up next',
-                style: GoogleFonts.outfit(
-                  fontSize: 11, color: const Color(0xFFC9A84C),
-                  fontWeight: FontWeight.w600, letterSpacing: 0.8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: gradColors.first.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text('UP NEXT',
+                  style: GoogleFonts.outfit(
+                    fontSize: 10, color: gradColors.first,
+                    fontWeight: FontWeight.w800, letterSpacing: 1.2)),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 6),
               Text(lesson.title,
                 style: GoogleFonts.outfit(
-                  fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
-              ),
+                  fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
               const SizedBox(height: 4),
-              Text('+${lesson.xpReward} XP  •  ${lesson.levelTier.label}',
-                style: GoogleFonts.outfit(fontSize: 12, color: Colors.white54),
-              ),
+              Row(children: [
+                const Icon(Icons.bolt, color: Color(0xFFFFD700), size: 14),
+                Text(' +${lesson.xpReward} XP  •  ${lesson.levelTier.label}',
+                  style: GoogleFonts.outfit(fontSize: 12, color: Colors.white54)),
+              ]),
             ],
           )),
           const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white30),
@@ -416,29 +465,87 @@ class _NextLessonCard extends StatelessWidget {
   }
 }
 
+class _LearningPathSection extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final tiers = [
+      ('Foundations', Icons.foundation, const Color(0xFF4B8BBE), '4 lessons'),
+      ('Data Handling', Icons.table_chart, const Color(0xFFFFD700), '3 lessons'),
+      ('Applied DS', Icons.analytics, const Color(0xFF00D4AA), '3 lessons'),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Learning Path',
+          style: GoogleFonts.outfit(
+            fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
+        const SizedBox(height: 12),
+        Row(children: tiers.asMap().entries.map((e) {
+          final i = e.key;
+          final t = e.value;
+          return Expanded(
+            child: Row(children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: t.$3.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: t.$3.withOpacity(0.3)),
+                  ),
+                  child: Column(children: [
+                    Icon(t.$2, color: t.$3, size: 22),
+                    const SizedBox(height: 6),
+                    Text(t.$1,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(
+                        fontSize: 11, color: Colors.white70,
+                        fontWeight: FontWeight.w600)),
+                    Text(t.$4,
+                      style: GoogleFonts.outfit(fontSize: 10, color: t.$3)),
+                  ]),
+                ),
+              ),
+              if (i < tiers.length - 1) ...[
+                const SizedBox(width: 4),
+                Icon(Icons.arrow_forward_ios,
+                    size: 10, color: Colors.white24),
+                const SizedBox(width: 4),
+              ],
+            ]),
+          );
+        }).toList()),
+      ],
+    );
+  }
+}
+
 class _AllDoneCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF4CAF50).withOpacity(0.08),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF4CAF50).withOpacity(0.3)),
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFF00D4AA).withOpacity(0.15),
+            const Color(0xFF4B8BBE).withOpacity(0.15),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF00D4AA).withOpacity(0.4)),
       ),
       child: Row(children: [
-        const Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 36),
+        const Text('🎉', style: TextStyle(fontSize: 36)),
         const SizedBox(width: 14),
         Expanded(child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Course Complete! 🎉',
+            Text('Course Complete!',
               style: GoogleFonts.outfit(
-                fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
-            ),
-            Text('You have finished all lessons. Excellent work!',
-              style: GoogleFonts.outfit(fontSize: 13, color: Colors.white54),
-            ),
+                fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+            Text('You\'ve finished all lessons. Excellent work!',
+              style: GoogleFonts.outfit(fontSize: 13, color: Colors.white54)),
           ],
         )),
       ]),
@@ -449,11 +556,11 @@ class _AllDoneCard extends StatelessWidget {
 class _QuickAction extends StatelessWidget {
   final String label;
   final IconData icon;
-  final Color color;
+  final List<Color> gradient;
   final VoidCallback onTap;
   const _QuickAction({
     required this.label, required this.icon,
-    required this.color, required this.onTap,
+    required this.gradient, required this.onTap,
   });
 
   @override
@@ -462,20 +569,23 @@ class _QuickAction extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 18),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withOpacity(0.2)),
+            gradient: LinearGradient(
+              colors: gradient.map((c) => c.withOpacity(0.15)).toList(),
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: gradient.first.withOpacity(0.3)),
           ),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 6),
+            Icon(icon, color: gradient.first, size: 26),
+            const SizedBox(height: 8),
             Text(label,
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(
-                fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w500),
-            ),
+                fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w600)),
           ]),
         ),
       ),

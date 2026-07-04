@@ -4,12 +4,15 @@ import '../models/quiz_question.dart';
 class QuizService {
   final _client = Supabase.instance.client;
 
-  Future<List<QuizQuestion>> fetchQuestionsForLesson(int lessonId) async {
+  Future<List<QuizQuestion>> fetchQuestionsForLesson(int lessonId,
+      {int pickCount = 5}) async {
     final data = await _client
         .from('quiz_questions')
         .select()
         .eq('lesson_id', lessonId);
-    return (data as List).map((e) => QuizQuestion.fromJson(e)).toList();
+    final all = (data as List).map((e) => QuizQuestion.fromJson(e)).toList();
+    all.shuffle(); // different order every attempt
+    return all.take(pickCount).toList();
   }
 
   Future<QuizAttempt> submitAttempt({

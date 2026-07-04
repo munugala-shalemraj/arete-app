@@ -70,25 +70,26 @@ class AreteApp extends StatelessWidget {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: const Color(0xFF0F0F1A),
+      scaffoldBackgroundColor: const Color(0xFF0A0A1F),
       colorScheme: const ColorScheme.dark(
-        primary: Color(0xFFC9A84C),
-        secondary: Color(0xFF4F8EF7),
-        surface: Color(0xFF1A1A2E),
+        primary: Color(0xFFFFD700),
+        secondary: Color(0xFF4B8BBE),
+        tertiary: Color(0xFF00D4AA),
+        surface: Color(0xFF12122A),
         onPrimary: Colors.black,
         onSecondary: Colors.white,
         onSurface: Colors.white,
       ),
       textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: const Color(0xFF1A1A2E),
-        indicatorColor: const Color(0xFFC9A84C).withOpacity(0.2),
+        backgroundColor: const Color(0xFF12122A),
+        indicatorColor: const Color(0xFFFFD700).withOpacity(0.15),
         labelTextStyle: WidgetStateProperty.all(
           GoogleFonts.outfit(fontSize: 12),
         ),
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: const Color(0xFF0A0A1F),
         elevation: 0,
         titleTextStyle: GoogleFonts.outfit(
           fontSize: 20,
@@ -98,8 +99,16 @@ class AreteApp extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       snackBarTheme: const SnackBarThemeData(
-        backgroundColor: Color(0xFF1A1A2E),
+        backgroundColor: Color(0xFF1A1A3E),
         contentTextStyle: TextStyle(color: Colors.white),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFFFD700),
+          foregroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14)),
+        ),
       ),
     );
   }
