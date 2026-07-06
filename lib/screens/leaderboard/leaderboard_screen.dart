@@ -53,11 +53,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       child: _loading ? _shimmer() : ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Leaderboard',
-            style: GoogleFonts.outfit(
-              fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
-          ),
-          const SizedBox(height: 4),
           Text('Top students ranked by XP earned',
             style: GoogleFonts.outfit(fontSize: 13, color: Colors.white38),
           ),

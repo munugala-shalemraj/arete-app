@@ -42,10 +42,14 @@ class SkillRadarChart extends StatelessWidget {
         ticksTextStyle:
             GoogleFonts.outfit(color: Colors.white24, fontSize: 9),
         tickBorderData: const BorderSide(color: Colors.transparent),
-        getTitle: (index, angle) => RadarChartTitle(
-          text: displaySkills[index].skillName,
-          angle: angle,
-        ),
+        getTitle: (index, angle) {
+          // Flip labels in the bottom half so they're never upside-down
+          final a = angle % 360;
+          return RadarChartTitle(
+            text: displaySkills[index].skillName,
+            angle: (a > 90 && a <= 270) ? angle + 180 : angle,
+          );
+        },
         titleTextStyle: GoogleFonts.outfit(
           color: Colors.white70,
           fontSize: 11,

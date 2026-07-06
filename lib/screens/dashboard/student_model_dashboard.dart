@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/skill_mastery.dart';
@@ -21,11 +20,6 @@ class StudentModelDashboard extends StatelessWidget {
     final strengths = sorted.take(2).toList();
     final focusAreas = sorted.reversed.take(2).toList();
     final weakest = focusAreas.isNotEmpty ? focusAreas.first : null;
-    final updatedAt = skills.isNotEmpty
-        ? skills
-            .map((s) => s.updatedAt)
-            .reduce((a, b) => a.isAfter(b) ? a : b)
-        : null;
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -40,21 +34,6 @@ class StudentModelDashboard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Your Skill Map',
-                  style: GoogleFonts.outfit(
-                    fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
-                ),
-                if (updatedAt != null)
-                  Text(
-                    'Updated ${DateFormat("d MMM").format(updatedAt)}',
-                    style: GoogleFonts.outfit(fontSize: 11, color: Colors.white30),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 4),
             Text('Open Student Model — transparent view of your progress',
               style: GoogleFonts.outfit(fontSize: 13, color: Colors.white38),
             ),

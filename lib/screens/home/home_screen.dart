@@ -64,6 +64,9 @@ class _HomeScreenState extends State<HomeScreen> {
       const ProfileScreen(),
     ];
 
+    // Tab titles and icons for non-home tabs
+    const tabTitles = ['', 'Learn', 'Skill Map', 'Leaderboard', 'Profile'];
+
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A1F),
       appBar: _selectedIndex == 0
@@ -112,7 +115,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     )
                   : null,
             )
-          : null,
+          : AppBar(
+              backgroundColor: const Color(0xFF0A0A1F),
+              elevation: 0,
+              title: Text(tabTitles[_selectedIndex],
+                style: GoogleFonts.outfit(
+                  fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
+            ),
       body: screens[_selectedIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
