@@ -307,10 +307,10 @@ class _HomeTabState extends State<_HomeTab> {
             ),
             const SizedBox(width: 12),
             _QuickAction(
-              label: 'Pre/Post Test',
-              icon: Icons.assignment,
+              label: 'Daily\nChallenge',
+              icon: Icons.bolt,
               gradient: const [Color(0xFFFFD700), Color(0xFFF4A200)],
-              onTap: () => context.push('/test'),
+              onTap: () => context.push('/challenge'),
             ),
             const SizedBox(width: 12),
             _QuickAction(

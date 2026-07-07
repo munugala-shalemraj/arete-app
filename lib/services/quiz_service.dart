@@ -55,4 +55,20 @@ class QuizService {
         .order('completed_at', ascending: false);
     return (data as List).map((e) => QuizAttempt.fromJson(e)).toList();
   }
+
+  Future<List<QuizQuestion>> fetchDailyChallenge({int count = 5}) async {
+    final data = await _client.from('quiz_questions').select();
+    final all = (data as List).map((e) => QuizQuestion.fromJson(e)).toList();
+    all.shuffle();
+    return all.take(count).toList();
+  }
+
+  Future<int> fetchLessonCompletionCount(int lessonId) async {
+    final data = await _client
+        .from('quiz_attempts')
+        .select('user_id')
+        .eq('lesson_id', lessonId);
+    final unique = (data as List).map((e) => e['user_id']).toSet();
+    return unique.length;
+  }
 }

@@ -214,6 +214,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 12),
           ],
 
+          // Analytics dashboard (researcher view)
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => context.push('/analytics'),
+              icon: const Icon(Icons.bar_chart_outlined, size: 18),
+              label: Text('Analytics Dashboard',
+                style: GoogleFonts.outfit(fontSize: 14)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF4B8BBE),
+                side: const BorderSide(color: Color(0xFF4B8BBE), width: 1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
           // Pre/Post test
           SizedBox(
             width: double.infinity,

@@ -10,6 +10,8 @@ import '../screens/learn/lesson_screen.dart';
 import '../screens/learn/quiz_screen.dart';
 import '../screens/assessment/pre_post_test_screen.dart';
 import '../screens/assessment/sus_survey_screen.dart';
+import '../screens/learn/daily_challenge_screen.dart';
+import '../screens/analytics/analytics_dashboard.dart';
 import '../models/lesson.dart';
 
 final GoRouter appRouter = GoRouter(
@@ -68,6 +70,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/sus',
       builder: (_, __) => const SusSurveyScreen(),
+    ),
+    GoRoute(
+      path: '/challenge',
+      builder: (_, __) => const DailyChallengeScreen(),
+    ),
+    GoRoute(
+      path: '/analytics',
+      builder: (_, __) => const AnalyticsDashboard(),
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

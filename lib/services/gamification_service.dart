@@ -207,6 +207,59 @@ class GamificationService {
     return List<Map<String, dynamic>>.from(data as List);
   }
 
+  // ── USER GOALS ──────────────────────────────────────────────
+  Future<Map<String, dynamic>?> fetchGoal(String userId) async {
+    final data = await _client
+        .from('user_goals')
+        .select()
+        .eq('user_id', userId)
+        .limit(1);
+    return (data as List).isNotEmpty ? data.first as Map<String, dynamic> : null;
+  }
+
+  Future<void> upsertGoal({
+    required String userId,
+    required String skillName,
+    required int targetPct,
+  }) async {
+    final existing = await _client
+        .from('user_goals')
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1);
+    if ((existing as List).isNotEmpty) {
+      await _client.from('user_goals').update({
+        'skill_name': skillName,
+        'target_pct': targetPct,
+      }).eq('user_id', userId);
+    } else {
+      await _client.from('user_goals').insert({
+        'user_id': userId,
+        'skill_name': skillName,
+        'target_pct': targetPct,
+      });
+    }
+  }
+
+  // ── ANALYTICS ───────────────────────────────────────────────
+  Future<Map<String, dynamic>> fetchAnalyticsSummary() async {
+    final profiles = await _client
+        .from('profiles')
+        .select('xp, level, streak_days');
+    final feedback = await _client
+        .from('feedback_responses')
+        .select('sus_score, imi_score');
+    final attempts = await _client
+        .from('quiz_attempts')
+        .select('lesson_id, score, max_score');
+
+    return {
+      'profiles': profiles as List,
+      'feedback': feedback as List,
+      'attempts': attempts as List,
+    };
+  }
+
   // ── LESSON COUNT ────────────────────────────────────────────
   Future<int> countCompletedLessons(String userId) async {
     final data = await _client

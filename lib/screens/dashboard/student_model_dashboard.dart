@@ -3,11 +3,51 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/skill_mastery.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../services/gamification_service.dart';
 import '../../widgets/skill_radar_chart.dart';
 
-class StudentModelDashboard extends StatelessWidget {
+class StudentModelDashboard extends StatefulWidget {
   const StudentModelDashboard({super.key});
+  @override
+  State<StudentModelDashboard> createState() => _StudentModelDashboardState();
+}
+
+class _StudentModelDashboardState extends State<StudentModelDashboard> {
+  final _gamService = GamificationService();
+  String? _goalSkill;
+  int _goalPct = 80;
+  bool _goalLoading = true;
+  bool _goalSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadGoal();
+  }
+
+  Future<void> _loadGoal() async {
+    final userId = context.read<AuthProvider>().user?.id;
+    if (userId == null) { setState(() => _goalLoading = false); return; }
+    final goal = await _gamService.fetchGoal(userId);
+    if (mounted) {
+      setState(() {
+        _goalSkill = goal?['skill_name'] as String?;
+        _goalPct = (goal?['target_pct'] as int?) ?? 80;
+        _goalLoading = false;
+      });
+    }
+  }
+
+  Future<void> _saveGoal(List<String> skillNames) async {
+    final userId = context.read<AuthProvider>().user?.id;
+    if (userId == null || _goalSkill == null) return;
+    setState(() => _goalSaving = true);
+    await _gamService.upsertGoal(
+      userId: userId, skillName: _goalSkill!, targetPct: _goalPct);
+    if (mounted) setState(() => _goalSaving = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +122,20 @@ class StudentModelDashboard extends StatelessWidget {
                   ],
                 ),
               ),
+
+            const SizedBox(height: 24),
+
+            // Goal setting
+            _GoalSection(
+              skills: skills.map((s) => s.skillName).toList(),
+              goalSkill: _goalSkill,
+              goalPct: _goalPct,
+              loading: _goalLoading,
+              saving: _goalSaving,
+              onChanged: (skill, pct) => setState(() {
+                _goalSkill = skill; _goalPct = pct; }),
+              onSave: () => _saveGoal(skills.map((s) => s.skillName).toList()),
+            ),
 
             const SizedBox(height: 24),
 
@@ -210,6 +264,126 @@ class _SkillRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _GoalSection extends StatelessWidget {
+  final List<String> skills;
+  final String? goalSkill;
+  final int goalPct;
+  final bool loading;
+  final bool saving;
+  final void Function(String skill, int pct) onChanged;
+  final VoidCallback onSave;
+
+  const _GoalSection({
+    required this.skills,
+    required this.goalSkill,
+    required this.goalPct,
+    required this.loading,
+    required this.saving,
+    required this.onChanged,
+    required this.onSave,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF9B59B6).withOpacity(0.3)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.track_changes, color: Color(0xFF9B59B6), size: 18),
+          const SizedBox(width: 8),
+          Text('Learning Goal',
+            style: GoogleFonts.outfit(
+              fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+        ]),
+        const SizedBox(height: 12),
+        if (loading)
+          const Center(child: SizedBox(width: 20, height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation(Color(0xFF9B59B6)))))
+        else if (skills.isEmpty)
+          Text('Complete a lesson first to set a skill goal.',
+            style: GoogleFonts.outfit(fontSize: 13, color: Colors.white38))
+        else ...[
+          Text('Target skill',
+            style: GoogleFonts.outfit(fontSize: 12, color: Colors.white38)),
+          const SizedBox(height: 6),
+          DropdownButtonFormField<String>(
+            value: goalSkill,
+            hint: Text('Choose a skill',
+              style: GoogleFonts.outfit(fontSize: 13, color: Colors.white38)),
+            dropdownColor: const Color(0xFF1A1A2E),
+            style: GoogleFonts.outfit(fontSize: 13, color: Colors.white),
+            decoration: InputDecoration(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 10),
+              filled: true, fillColor: const Color(0xFF0A0A1F),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(
+                  color: Colors.white.withOpacity(0.1))),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(
+                  color: Colors.white.withOpacity(0.1))),
+            ),
+            items: skills.map((s) => DropdownMenuItem(
+              value: s,
+              child: Text(s,
+                style: GoogleFonts.outfit(fontSize: 13, color: Colors.white)),
+            )).toList(),
+            onChanged: (v) { if (v != null) onChanged(v, goalPct); },
+          ),
+          const SizedBox(height: 12),
+          Text('Target mastery: $goalPct%',
+            style: GoogleFonts.outfit(fontSize: 12, color: Colors.white54)),
+          Slider(
+            value: goalPct.toDouble(),
+            min: 50, max: 100, divisions: 10,
+            activeColor: const Color(0xFF9B59B6),
+            inactiveColor: Colors.white12,
+            label: '$goalPct%',
+            onChanged: (v) => onChanged(goalSkill ?? skills.first, v.toInt()),
+          ),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: (saving || goalSkill == null) ? null : onSave,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF9B59B6),
+                disabledBackgroundColor: Colors.white12,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+              child: saving
+                  ? const SizedBox(width: 18, height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white))
+                  : Text('Save Goal',
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.w700, fontSize: 14)),
+            ),
+          ),
+          if (goalSkill != null) ...[
+            const SizedBox(height: 8),
+            Text('Goal: reach $goalPct% mastery in $goalSkill',
+              style: GoogleFonts.outfit(
+                fontSize: 12, color: const Color(0xFF9B59B6))),
+          ],
+        ],
+      ]),
     );
   }
 }

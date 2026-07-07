@@ -394,7 +394,7 @@ class _LessonListScreenState extends State<LessonListScreen> {
   }
 }
 
-class _LessonTile extends StatelessWidget {
+class _LessonTile extends StatefulWidget {
   final Lesson lesson;
   final bool isCompleted;
   final bool isLocked;
@@ -409,7 +409,28 @@ class _LessonTile extends StatelessWidget {
   });
 
   @override
+  State<_LessonTile> createState() => _LessonTileState();
+}
+
+class _LessonTileState extends State<_LessonTile> {
+  int? _completionCount;
+
+  @override
+  void initState() {
+    super.initState();
+    QuizService().fetchLessonCompletionCount(widget.lesson.id).then((n) {
+      if (mounted) setState(() => _completionCount = n);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final lesson = widget.lesson;
+    final isCompleted = widget.isCompleted;
+    final isLocked = widget.isLocked;
+    final gradient = widget.gradient;
+    final index = widget.index;
+    final onTap = widget.onTap;
     return AnimatedOpacity(
       opacity: isLocked ? 0.5 : 1.0,
       duration: const Duration(milliseconds: 200),
@@ -485,6 +506,15 @@ class _LessonTile extends StatelessWidget {
                         style: GoogleFonts.outfit(
                           fontSize: 12, color: const Color(0xFFFFD700),
                           fontWeight: FontWeight.w600)),
+                      if (_completionCount != null && _completionCount! > 0) ...[
+                        const SizedBox(width: 8),
+                        const Icon(Icons.people_outline,
+                          color: Color(0xFF00D4AA), size: 12),
+                        const SizedBox(width: 3),
+                        Text('$_completionCount completed',
+                          style: GoogleFonts.outfit(
+                            fontSize: 10, color: const Color(0xFF00D4AA))),
+                      ],
                       if (isCompleted) ...[
                         const SizedBox(width: 8),
                         Container(
