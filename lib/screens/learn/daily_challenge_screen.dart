@@ -104,12 +104,12 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
     if (auth.user != null && userProvider.profile != null) {
       final bonus = _score * 15 + (_score == _questions.length ? 50 : 0);
       if (bonus > 0) {
-        final updated = await GamificationService().awardXp(
+        await GamificationService().awardXp(
           userId: auth.user!.id,
           xpEarned: bonus,
           currentProfile: userProvider.profile!,
         );
-        if (mounted) userProvider.setProfile(updated);
+        if (mounted) await userProvider.loadProfile(auth.user!.id);
       }
     }
   }
