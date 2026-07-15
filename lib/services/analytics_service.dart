@@ -41,18 +41,20 @@ class AnalyticsService {
     });
   }
 
-  Future<void> submitBpns({
+  Future<void> submitImi({
     required String userId,
-    required double autonomyScore,
-    required double competenceScore,
-    required double relatednessScore,
+    required double interestEnjoyment,
+    required double perceivedCompetence,
+    required double perceivedChoice,
+    required double relatedness,
     required Map<String, int> responses,
   }) async {
-    await _client.from('bpns_responses').insert({
+    await _client.from('imi_responses').insert({
       'user_id': userId,
-      'autonomy_score': autonomyScore,
-      'competence_score': competenceScore,
-      'relatedness_score': relatednessScore,
+      'interest_enjoyment': interestEnjoyment,
+      'perceived_competence': perceivedCompetence,
+      'perceived_choice': perceivedChoice,
+      'relatedness': relatedness,
       'responses': responses,
     });
   }

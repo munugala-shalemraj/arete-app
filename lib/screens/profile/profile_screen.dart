@@ -193,13 +193,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           const SizedBox(height: 28),
 
-          // Motivation Survey (BPNS)
+          // Motivation Survey (IMI)
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: () => context.push('/bpns'),
+              onPressed: () => context.push('/imi'),
               icon: const Icon(Icons.psychology_outlined, size: 18),
-              label: Text('Motivation Survey (BPNS)',
+              label: Text('Motivation Survey (IMI)',
                 style: GoogleFonts.outfit(fontSize: 14)),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF9B59B6),
