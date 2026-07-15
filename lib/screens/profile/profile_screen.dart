@@ -193,7 +193,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           const SizedBox(height: 28),
 
-          // SUS Survey button (show after 3+ lessons completed)
+          // Motivation Survey (BPNS)
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => context.push('/bpns'),
+              icon: const Icon(Icons.psychology_outlined, size: 18),
+              label: Text('Motivation Survey (BPNS)',
+                style: GoogleFonts.outfit(fontSize: 14)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF9B59B6),
+                side: const BorderSide(color: Color(0xFF9B59B6), width: 1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // SUS Survey button
           if (earnedBadges.length >= 1) ...[
             SizedBox(
               width: double.infinity,
@@ -211,7 +230,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
           ],
 
           // Analytics dashboard (researcher view)

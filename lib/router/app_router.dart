@@ -10,6 +10,7 @@ import '../screens/learn/lesson_screen.dart';
 import '../screens/learn/quiz_screen.dart';
 import '../screens/assessment/pre_post_test_screen.dart';
 import '../screens/assessment/sus_survey_screen.dart';
+import '../screens/assessment/bpns_survey_screen.dart';
 import '../screens/learn/daily_challenge_screen.dart';
 import '../screens/analytics/analytics_dashboard.dart';
 import '../models/lesson.dart';
@@ -70,6 +71,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/sus',
       builder: (_, __) => const SusSurveyScreen(),
+    ),
+    GoRoute(
+      path: '/bpns',
+      builder: (_, __) => const BpnsSurveyScreen(),
     ),
     GoRoute(
       path: '/challenge',

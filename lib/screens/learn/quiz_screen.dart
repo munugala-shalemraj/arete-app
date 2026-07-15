@@ -30,10 +30,12 @@ class _QuizScreenState extends State<QuizScreen> {
   bool _checked = false;
   int _score = 0;
   bool _loading = true;
+  late final DateTime _startedAt;
 
   @override
   void initState() {
     super.initState();
+    _startedAt = DateTime.now().toUtc();
     _load();
   }
 
@@ -80,6 +82,7 @@ class _QuizScreenState extends State<QuizScreen> {
         lessonId: widget.lesson.id,
         score: _score,
         maxScore: total,
+        startedAt: _startedAt,
       );
 
       // XP: 10 per correct + 25 bonus for perfect

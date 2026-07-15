@@ -20,7 +20,9 @@ class QuizService {
     required int lessonId,
     required int score,
     required int maxScore,
+    DateTime? startedAt,
   }) async {
+    final now = DateTime.now().toUtc();
     final data = await _client
         .from('quiz_attempts')
         .insert({
@@ -28,6 +30,10 @@ class QuizService {
           'lesson_id': lessonId,
           'score': score,
           'max_score': maxScore,
+          if (startedAt != null)
+            'started_at': startedAt.toIso8601String(),
+          if (startedAt != null)
+            'duration_seconds': now.difference(startedAt).inSeconds,
         })
         .select()
         .single();

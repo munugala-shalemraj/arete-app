@@ -40,4 +40,20 @@ class AnalyticsService {
       'open_feedback': openFeedback,
     });
   }
+
+  Future<void> submitBpns({
+    required String userId,
+    required double autonomyScore,
+    required double competenceScore,
+    required double relatednessScore,
+    required Map<String, int> responses,
+  }) async {
+    await _client.from('bpns_responses').insert({
+      'user_id': userId,
+      'autonomy_score': autonomyScore,
+      'competence_score': competenceScore,
+      'relatedness_score': relatednessScore,
+      'responses': responses,
+    });
+  }
 }
