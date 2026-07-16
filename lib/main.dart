@@ -1,14 +1,15 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/supabase_config.dart';
 import 'providers/auth_provider.dart';
+import 'providers/theme_provider.dart';
 import 'providers/user_provider.dart';
 import 'router/app_router.dart';
+import 'theme/app_theme.dart';
 import 'utils/in_memory_storage.dart';
 
 Future<void> main() async {
@@ -42,6 +43,7 @@ Future<void> main() async {
         providers: [
           ChangeNotifierProvider(create: (_) => AuthProvider()),
           ChangeNotifierProvider(create: (_) => UserProvider()),
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ],
         child: const AreteApp(),
       ),
@@ -57,59 +59,15 @@ class AreteApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     context.watch<AuthProvider>();
+    final themeMode = context.watch<ThemeProvider>().mode;
 
     return MaterialApp.router(
       title: 'Arete',
       debugShowCheckedModeBanner: false,
       routerConfig: appRouter,
-      theme: _buildTheme(),
-    );
-  }
-
-  ThemeData _buildTheme() {
-    return ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: const Color(0xFF0A0A1F),
-      colorScheme: const ColorScheme.dark(
-        primary: Color(0xFFFFD700),
-        secondary: Color(0xFF4B8BBE),
-        tertiary: Color(0xFF00D4AA),
-        surface: Color(0xFF12122A),
-        onPrimary: Colors.black,
-        onSecondary: Colors.white,
-        onSurface: Colors.white,
-      ),
-      textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: const Color(0xFF12122A),
-        indicatorColor: const Color(0xFFFFD700).withOpacity(0.15),
-        labelTextStyle: WidgetStateProperty.all(
-          GoogleFonts.outfit(fontSize: 12),
-        ),
-      ),
-      appBarTheme: AppBarTheme(
-        backgroundColor: const Color(0xFF0A0A1F),
-        elevation: 0,
-        titleTextStyle: GoogleFonts.outfit(
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      snackBarTheme: const SnackBarThemeData(
-        backgroundColor: Color(0xFF1A1A3E),
-        contentTextStyle: TextStyle(color: Colors.white),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFFFD700),
-          foregroundColor: Colors.black,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14)),
-        ),
-      ),
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: themeMode,
     );
   }
 }

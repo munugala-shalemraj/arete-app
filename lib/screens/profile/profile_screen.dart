@@ -6,7 +6,9 @@ import 'package:provider/provider.dart';
 
 import '../../models/badge_model.dart' as badge_model;
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../theme/app_theme.dart';
 import '../../services/gamification_service.dart';
 import '../../widgets/xp_bar.dart';
 
@@ -272,6 +274,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           const SizedBox(height: 24),
 
+          // Theme toggle
+          _ThemeToggleTile(),
+
+          const SizedBox(height: 16),
+
           // Sign out
           SizedBox(
             width: double.infinity,
@@ -396,6 +403,45 @@ class _BadgeGridItem extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ThemeToggleTile extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final themeProvider = context.watch<ThemeProvider>();
+    final isDark = themeProvider.isDark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: context.bgSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: context.borderSubtle),
+      ),
+      child: Row(children: [
+        Icon(
+          isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+          color: isDark ? AColors.blue : AColors.gold,
+          size: 20,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(isDark ? 'Night Mode' : 'Day Mode',
+              style: GoogleFonts.outfit(
+                fontSize: 14, fontWeight: FontWeight.w600,
+                color: context.textPrimary)),
+            Text(isDark ? 'Switch to light theme' : 'Switch to dark theme',
+              style: GoogleFonts.outfit(
+                fontSize: 11, color: context.textHint)),
+          ]),
+        ),
+        Switch(
+          value: isDark,
+          onChanged: (_) => themeProvider.toggle(),
+        ),
+      ]),
     );
   }
 }

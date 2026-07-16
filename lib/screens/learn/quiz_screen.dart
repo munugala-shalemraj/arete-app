@@ -11,6 +11,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/gamification_service.dart';
 import '../../services/quiz_service.dart';
+import '../../theme/app_theme.dart';
 
 class QuizScreen extends StatefulWidget {
   final Lesson lesson;
@@ -295,13 +296,13 @@ class _QuizScreenState extends State<QuizScreen> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: correct
-                          ? const Color(0xFF4CAF50).withOpacity(0.08)
-                          : Colors.redAccent.withOpacity(0.08),
+                          ? AColors.correct.withOpacity(0.08)
+                          : AColors.wrong.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: correct
-                            ? const Color(0xFF4CAF50).withOpacity(0.3)
-                            : Colors.redAccent.withOpacity(0.3),
+                            ? AColors.correct.withOpacity(0.3)
+                            : AColors.wrong.withOpacity(0.3),
                       ),
                     ),
                     child: Row(
@@ -309,7 +310,7 @@ class _QuizScreenState extends State<QuizScreen> {
                       children: [
                         Icon(
                           correct ? Icons.check_circle_outline : Icons.info_outline,
-                          color: correct ? const Color(0xFF4CAF50) : Colors.redAccent,
+                          color: correct ? AColors.correct : AColors.wrong,
                           size: 18,
                         ),
                         const SizedBox(width: 10),
@@ -414,35 +415,25 @@ class _OptionButton extends StatelessWidget {
     required this.state, required this.onTap,
   });
 
-  Color get _borderColor {
+  // Colour-blind safe: blue = correct, orange = wrong, gold = selected
+  Color _accent(BuildContext ctx) {
     switch (state) {
-      case _OptionState.correct: return const Color(0xFF4CAF50);
-      case _OptionState.wrong:   return Colors.redAccent;
-      case _OptionState.selected: return const Color(0xFFC9A84C);
-      default: return Colors.white12;
-    }
-  }
-
-  Color get _bg {
-    switch (state) {
-      case _OptionState.correct: return const Color(0xFF4CAF50).withOpacity(0.1);
-      case _OptionState.wrong:   return Colors.redAccent.withOpacity(0.1);
-      case _OptionState.selected: return const Color(0xFFC9A84C).withOpacity(0.08);
-      default: return const Color(0xFF1A1A2E);
-    }
-  }
-
-  Color get _textColor {
-    switch (state) {
-      case _OptionState.correct: return const Color(0xFF4CAF50);
-      case _OptionState.wrong:   return Colors.redAccent;
-      case _OptionState.selected: return const Color(0xFFC9A84C);
-      default: return Colors.white70;
+      case _OptionState.correct:  return AColors.correct;
+      case _OptionState.wrong:    return AColors.wrong;
+      case _OptionState.selected: return AColors.selected;
+      default: return ctx.isDark ? Colors.white12 : Colors.black12;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final accent = _accent(context);
+    final isNeutral = state == _OptionState.neutral;
+    final bg = isNeutral
+        ? context.bgSurface
+        : accent.withOpacity(0.10);
+    final textCol = isNeutral ? context.textSecondary : accent;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -450,32 +441,41 @@ class _OptionButton extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: _bg,
+          color: bg,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _borderColor),
+          border: Border.all(
+            color: accent,
+            width: (state == _OptionState.correct ||
+                    state == _OptionState.wrong) ? 2 : 1),
         ),
         child: Row(children: [
+          // Option badge — shows letter normally, icon after check
           Container(
             width: 30, height: 30,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: _borderColor.withOpacity(0.15),
-              border: Border.all(color: _borderColor),
+              color: accent.withOpacity(0.15),
+              border: Border.all(color: accent),
             ),
-            child: Center(child: Text(option.toUpperCase(),
-              style: GoogleFonts.outfit(
-                fontSize: 13, fontWeight: FontWeight.w700, color: _textColor),
-            )),
+            child: Center(
+              child: state == _OptionState.correct
+                  ? Icon(Icons.check, color: AColors.correct, size: 16)
+                  : state == _OptionState.wrong
+                      ? Icon(Icons.close, color: AColors.wrong, size: 16)
+                      : Text(option.toUpperCase(),
+                          style: GoogleFonts.outfit(
+                            fontSize: 13, fontWeight: FontWeight.w700,
+                            color: textCol)),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(child: Text(text,
             style: GoogleFonts.outfit(
-              fontSize: 14, color: _textColor, height: 1.35),
-          )),
+              fontSize: 14, color: textCol, height: 1.35))),
           if (state == _OptionState.correct)
-            const Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 20),
+            const Icon(Icons.check_circle, color: AColors.correct, size: 20),
           if (state == _OptionState.wrong)
-            const Icon(Icons.cancel, color: Colors.redAccent, size: 20),
+            const Icon(Icons.cancel, color: AColors.wrong, size: 20),
         ]),
       ),
     );

@@ -9,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/gamification_service.dart';
 import '../../services/quiz_service.dart';
+import '../../theme/app_theme.dart';
 
 class DailyChallengeScreen extends StatefulWidget {
   const DailyChallengeScreen({super.key});
@@ -322,19 +323,19 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
 
               if (_checked) {
                 if (key == q.correctOption.toLowerCase()) {
-                  borderColor = const Color(0xFF00D4AA);
-                  bgColor = const Color(0xFF00D4AA).withOpacity(0.08);
+                  borderColor = AColors.correct;
+                  bgColor = AColors.correct.withOpacity(0.08);
                   trailingIcon = Icons.check_circle;
-                  iconColor = const Color(0xFF00D4AA);
+                  iconColor = AColors.correct;
                 } else if (key == _selected?.toLowerCase()) {
-                  borderColor = Colors.redAccent;
-                  bgColor = Colors.redAccent.withOpacity(0.07);
+                  borderColor = AColors.wrong;
+                  bgColor = AColors.wrong.withOpacity(0.07);
                   trailingIcon = Icons.cancel;
-                  iconColor = Colors.redAccent;
+                  iconColor = AColors.wrong;
                 }
               } else if (_selected?.toLowerCase() == key) {
-                borderColor = const Color(0xFFFFD700);
-                bgColor = const Color(0xFFFFD700).withOpacity(0.06);
+                borderColor = AColors.selected;
+                bgColor = AColors.selected.withOpacity(0.06);
               }
 
               return GestureDetector(
