@@ -18,6 +18,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _submitting = false;
+  bool _emailSent = false;
 
   @override
   void dispose() {
@@ -43,7 +44,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
     setState(() => _submitting = false);
     if (success) {
-      context.go('/home');
+      setState(() => _emailSent = true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -56,6 +57,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_emailSent) return _EmailSentScreen(email: _emailController.text.trim());
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -213,6 +216,86 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ],
                       ),
                     ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmailSentScreen extends StatelessWidget {
+  final String email;
+  const _EmailSentScreen({required this.email});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF0A0A1F), Color(0xFF0F0F2E), Color(0xFF1A0A2E)],
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 100, height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF00D4AA).withOpacity(0.12),
+                    border: Border.all(
+                      color: const Color(0xFF00D4AA).withOpacity(0.4), width: 2),
+                  ),
+                  child: const Icon(Icons.mark_email_read_outlined,
+                    color: Color(0xFF00D4AA), size: 48),
+                ),
+                const SizedBox(height: 32),
+                Text('Check your email',
+                  style: GoogleFonts.outfit(
+                    fontSize: 28, fontWeight: FontWeight.w800,
+                    color: Colors.white)),
+                const SizedBox(height: 12),
+                Text(
+                  'We sent a confirmation link to',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(fontSize: 15, color: Colors.white54)),
+                const SizedBox(height: 6),
+                Text(email,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(
+                    fontSize: 15, fontWeight: FontWeight.w700,
+                    color: const Color(0xFF00D4AA))),
+                const SizedBox(height: 16),
+                Text(
+                  'Click the link in the email to verify your account, then sign in below.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(fontSize: 13, color: Colors.white38)),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: () => context.go('/login'),
+                    icon: const Icon(Icons.login, size: 18),
+                    label: Text('Go to Sign In',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16, fontWeight: FontWeight.w700)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00D4AA),
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    ),
                   ),
                 ),
               ],

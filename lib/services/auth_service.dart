@@ -25,6 +25,7 @@ class AuthService {
     final response = await _client.auth.signUp(
       email: email,
       password: password,
+      emailRedirectTo: 'https://munugala-shalemraj.github.io/arete-app/',
       data: {
         'username': username,
         'display_name': displayName ?? username,
