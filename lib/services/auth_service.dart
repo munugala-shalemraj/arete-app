@@ -64,5 +64,8 @@ class AuthService {
   Future<void> signOut() => _client.auth.signOut();
 
   Future<void> resetPassword(String email) =>
-      _client.auth.resetPasswordForEmail(email);
+      _client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: 'https://munugala-shalemraj.github.io/arete-app/',
+      );
 }
