@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/skill_mastery.dart';
+import '../theme/app_theme.dart';
 
 class SkillRadarChart extends StatelessWidget {
   final List<SkillMastery> skills;
@@ -14,12 +15,15 @@ class SkillRadarChart extends StatelessWidget {
       return Center(
         child: Text(
           'Complete lessons to see your skill map',
-          style: GoogleFonts.outfit(color: Colors.white38, fontSize: 14),
+          style: GoogleFonts.outfit(color: context.textHint, fontSize: 14),
         ),
       );
     }
 
     final displaySkills = skills.take(6).toList();
+    final gridColor = context.borderMid;
+    final labelColor = context.textSecondary;
+    final tickColor = context.textDisabled;
 
     return RadarChart(
       RadarChartData(
@@ -36,14 +40,12 @@ class SkillRadarChart extends StatelessWidget {
         ],
         radarBackgroundColor: Colors.transparent,
         borderData: FlBorderData(show: false),
-        radarBorderData: const BorderSide(color: Colors.white12),
-        gridBorderData: const BorderSide(color: Colors.white10, width: 1),
+        radarBorderData: BorderSide(color: gridColor),
+        gridBorderData: BorderSide(color: gridColor, width: 1),
         tickCount: 4,
-        ticksTextStyle:
-            GoogleFonts.outfit(color: Colors.white24, fontSize: 9),
+        ticksTextStyle: GoogleFonts.outfit(color: tickColor, fontSize: 9),
         tickBorderData: const BorderSide(color: Colors.transparent),
         getTitle: (index, angle) {
-          // Flip labels in the bottom half so they're never upside-down
           final a = angle % 360;
           return RadarChartTitle(
             text: displaySkills[index].skillName,
@@ -51,7 +53,7 @@ class SkillRadarChart extends StatelessWidget {
           );
         },
         titleTextStyle: GoogleFonts.outfit(
-          color: Colors.white70,
+          color: labelColor,
           fontSize: 11,
           fontWeight: FontWeight.w500,
         ),

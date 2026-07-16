@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 
 class StreakIndicator extends StatelessWidget {
   final int streakDays;
@@ -13,12 +14,12 @@ class StreakIndicator extends StatelessWidget {
       decoration: BoxDecoration(
         color: streakDays > 0
             ? const Color(0xFFC9A84C).withOpacity(0.15)
-            : Colors.white.withOpacity(0.05),
+            : context.bgSurface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: streakDays > 0
               ? const Color(0xFFC9A84C).withOpacity(0.4)
-              : Colors.white12,
+              : context.borderMid,
         ),
       ),
       child: Row(
@@ -36,7 +37,7 @@ class StreakIndicator extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: streakDays > 0
                   ? const Color(0xFFC9A84C)
-                  : Colors.white54,
+                  : context.textSecondary,
             ),
           ),
         ],

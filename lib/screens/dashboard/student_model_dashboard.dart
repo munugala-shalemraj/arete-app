@@ -118,7 +118,7 @@ class _StudentModelDashboardState extends State<StudentModelDashboard> {
                       '(${(weakest.masteryScore * 100).toInt()}% mastery). '
                       'Complete the related lesson to improve this skill.',
                       style: GoogleFonts.outfit(
-                        color: Colors.white70, fontSize: 13, height: 1.5),
+                        color: context.textSecondary, fontSize: 13, height: 1.5),
                     )),
                   ],
                 ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_theme.dart';
 
 class XpBar extends StatelessWidget {
   final int xp;
@@ -33,7 +34,7 @@ class XpBar extends StatelessWidget {
               '$xp XP',
               style: GoogleFonts.outfit(
                 fontSize: 13,
-                color: Colors.white60,
+                color: context.textSecondary,
               ),
             ),
           ],
@@ -44,7 +45,7 @@ class XpBar extends StatelessWidget {
           child: LinearProgressIndicator(
             value: progress.clamp(0.0, 1.0),
             minHeight: 8,
-            backgroundColor: Colors.white12,
+            backgroundColor: context.borderMid,
             valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFC9A84C)),
           ),
         ),
