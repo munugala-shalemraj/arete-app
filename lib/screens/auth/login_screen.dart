@@ -24,6 +24,146 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  Future<void> _showForgotPassword(BuildContext context) async {
+    final emailCtrl = TextEditingController();
+    bool sending = false;
+    bool sent = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF12122A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            24, 24, 24,
+            MediaQuery.of(ctx).viewInsets.bottom + 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white12,
+                    borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text('Reset Password',
+                style: GoogleFonts.outfit(
+                  fontSize: 22, fontWeight: FontWeight.w800,
+                  color: Colors.white)),
+              const SizedBox(height: 6),
+              Text("Enter your email and we'll send a reset link.",
+                style: GoogleFonts.outfit(fontSize: 13, color: Colors.white38)),
+              const SizedBox(height: 20),
+              if (sent) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00D4AA).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: const Color(0xFF00D4AA).withOpacity(0.4)),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.check_circle_outline,
+                      color: Color(0xFF00D4AA), size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text('Reset link sent! Check your inbox.',
+                        style: GoogleFonts.outfit(
+                          fontSize: 14, color: const Color(0xFF00D4AA))),
+                    ),
+                  ]),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1A1A2E),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: Text('Close',
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ] else ...[
+                TextField(
+                  controller: emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  style: GoogleFonts.outfit(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'you@university.ac.uk',
+                    hintStyle: GoogleFonts.outfit(color: Colors.white24),
+                    filled: true,
+                    fillColor: const Color(0xFF0A0A1F),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: const Color(0xFF4B8BBE).withOpacity(0.3)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: const Color(0xFF4B8BBE).withOpacity(0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF4B8BBE), width: 1.5),
+                    ),
+                    prefixIcon: const Icon(Icons.email_outlined,
+                      color: Color(0xFF4B8BBE), size: 20),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: sending ? null : () async {
+                      final email = emailCtrl.text.trim();
+                      if (!email.contains('@')) return;
+                      setModalState(() => sending = true);
+                      try {
+                        await context.read<AuthProvider>().resetPassword(email);
+                      } catch (_) {}
+                      setModalState(() { sending = false; sent = true; });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4B8BBE),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: sending
+                      ? const SizedBox(width: 20, height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                      : Text('Send Reset Link',
+                          style: GoogleFonts.outfit(
+                            fontWeight: FontWeight.w700, fontSize: 15)),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+    emailCtrl.dispose();
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
@@ -157,7 +297,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         validator: (v) => v != null && v.length >= 6
                             ? null : 'Minimum 6 characters',
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 8),
+                      // Forgot password
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: GestureDetector(
+                          onTap: () => _showForgotPassword(context),
+                          child: Text('Forgot password?',
+                            style: GoogleFonts.outfit(
+                              fontSize: 13,
+                              color: const Color(0xFF4B8BBE),
+                              fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
                       // Sign in button
                       Container(
                         width: double.infinity,
