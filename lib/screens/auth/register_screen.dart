@@ -44,7 +44,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
     setState(() => _submitting = false);
     if (success) {
-      setState(() => _emailSent = true);
+      if (!mounted) return;
+      context.go('/home');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
