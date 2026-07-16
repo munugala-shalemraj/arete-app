@@ -10,6 +10,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/lesson_service.dart';
 import '../../services/quiz_service.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/streak_indicator.dart';
 import '../../widgets/xp_bar.dart';
 import '../dashboard/student_model_dashboard.dart';
@@ -68,10 +69,10 @@ class _HomeScreenState extends State<HomeScreen> {
     const tabTitles = ['', 'Learn', 'Skill Map', 'Leaderboard', 'Profile'];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A1F),
+      backgroundColor: context.bgPrimary,
       appBar: _selectedIndex == 0
           ? AppBar(
-              backgroundColor: const Color(0xFF0A0A1F),
+              backgroundColor: context.bgPrimary,
               elevation: 0,
               title: Row(children: [
                 Container(
@@ -116,17 +117,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   : null,
             )
           : AppBar(
-              backgroundColor: const Color(0xFF0A0A1F),
+              backgroundColor: context.bgPrimary,
               elevation: 0,
               title: Text(tabTitles[_selectedIndex],
                 style: GoogleFonts.outfit(
-                  fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
+                  fontSize: 22, fontWeight: FontWeight.w800, color: context.textPrimary)),
             ),
       body: screens[_selectedIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF12122A),
-          border: const Border(top: BorderSide(color: Colors.white10)),
+          color: context.bgCard,
+          border: Border(top: BorderSide(color: context.borderMid)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.4),
@@ -228,10 +229,10 @@ class _HomeTabState extends State<_HomeTab> {
           // Greeting
           Text('$greeting, $displayName 👋',
             style: GoogleFonts.outfit(
-              fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
+              fontSize: 22, fontWeight: FontWeight.w700, color: context.textPrimary)),
           const SizedBox(height: 4),
           Text(dateStr,
-            style: GoogleFonts.outfit(fontSize: 14, color: Colors.white38)),
+            style: GoogleFonts.outfit(fontSize: 14, color: context.textHint)),
           const SizedBox(height: 24),
 
           // Stats row
@@ -265,7 +266,7 @@ class _HomeTabState extends State<_HomeTab> {
           Row(children: [
             Text('Continue Learning',
               style: GoogleFonts.outfit(
-                fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
+                fontSize: 17, fontWeight: FontWeight.w700, color: context.textPrimary)),
             const Spacer(),
             GestureDetector(
               onTap: () => widget.onNavigate(1),
@@ -296,7 +297,7 @@ class _HomeTabState extends State<_HomeTab> {
           // Quick actions
           Text('Quick Actions',
             style: GoogleFonts.outfit(
-              fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
+              fontSize: 17, fontWeight: FontWeight.w700, color: context.textPrimary)),
           const SizedBox(height: 12),
           Row(children: [
             _QuickAction(
@@ -382,9 +383,9 @@ class _StatChip extends StatelessWidget {
           const SizedBox(height: 6),
           Text(value,
             style: GoogleFonts.outfit(
-              fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
+              fontSize: 22, fontWeight: FontWeight.w900, color: context.textPrimary)),
           Text(label,
-            style: GoogleFonts.outfit(fontSize: 11, color: Colors.white38)),
+            style: GoogleFonts.outfit(fontSize: 11, color: context.textHint)),
         ]),
       ),
     );
@@ -458,12 +459,12 @@ class _NextLessonCard extends StatelessWidget {
               const SizedBox(height: 6),
               Text(lesson.title,
                 style: GoogleFonts.outfit(
-                  fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+                  fontSize: 16, fontWeight: FontWeight.w700, color: context.textPrimary)),
               const SizedBox(height: 4),
               Row(children: [
                 const Icon(Icons.bolt, color: Color(0xFFFFD700), size: 14),
                 Text(' +${lesson.xpReward} XP  •  ${lesson.levelTier.label}',
-                  style: GoogleFonts.outfit(fontSize: 12, color: Colors.white54)),
+                  style: GoogleFonts.outfit(fontSize: 12, color: context.textSecondary)),
               ]),
             ],
           )),
@@ -487,7 +488,7 @@ class _LearningPathSection extends StatelessWidget {
       children: [
         Text('Learning Path',
           style: GoogleFonts.outfit(
-            fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white)),
+            fontSize: 17, fontWeight: FontWeight.w700, color: context.textPrimary)),
         const SizedBox(height: 12),
         Row(children: tiers.asMap().entries.map((e) {
           final i = e.key;
@@ -508,7 +509,7 @@ class _LearningPathSection extends StatelessWidget {
                     Text(t.$1,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.outfit(
-                        fontSize: 11, color: Colors.white70,
+                        fontSize: 11, color: context.textSecondary,
                         fontWeight: FontWeight.w600)),
                     Text(t.$4,
                       style: GoogleFonts.outfit(fontSize: 10, color: t.$3)),
@@ -518,7 +519,7 @@ class _LearningPathSection extends StatelessWidget {
               if (i < tiers.length - 1) ...[
                 const SizedBox(width: 4),
                 Icon(Icons.arrow_forward_ios,
-                    size: 10, color: Colors.white24),
+                    size: 10, color: context.textDisabled),
                 const SizedBox(width: 4),
               ],
             ]),
@@ -552,9 +553,9 @@ class _AllDoneCard extends StatelessWidget {
           children: [
             Text('Course Complete!',
               style: GoogleFonts.outfit(
-                fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+                fontSize: 16, fontWeight: FontWeight.w800, color: context.textPrimary)),
             Text('You\'ve finished all lessons. Excellent work!',
-              style: GoogleFonts.outfit(fontSize: 13, color: Colors.white54)),
+              style: GoogleFonts.outfit(fontSize: 13, color: context.textSecondary)),
           ],
         )),
       ]),
@@ -594,7 +595,7 @@ class _QuickAction extends StatelessWidget {
             Text(label,
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(
-                fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w600)),
+                fontSize: 11, color: context.textSecondary, fontWeight: FontWeight.w600)),
           ]),
         ),
       ),

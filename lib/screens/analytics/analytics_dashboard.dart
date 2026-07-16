@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/gamification_service.dart';
+import '../../theme/app_theme.dart';
 
 class AnalyticsDashboard extends StatefulWidget {
   const AnalyticsDashboard({super.key});
@@ -37,20 +38,20 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A1F),
+      backgroundColor: context.bgPrimary,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0A1F),
+        backgroundColor: context.bgPrimary,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: context.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text('Analytics Dashboard',
           style: GoogleFonts.outfit(
-            fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
+            fontSize: 20, fontWeight: FontWeight.w700, color: context.textPrimary)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white54),
+            icon: Icon(Icons.refresh, color: context.textSecondary),
             onPressed: _load,
           ),
         ],
@@ -90,7 +91,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
 
   Widget _sectionHeader(String title) => Text(title,
     style: GoogleFonts.outfit(
-      fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white));
+      fontSize: 16, fontWeight: FontWeight.w700, color: context.textPrimary));
 
   Widget _summaryRow() {
     final susList = _feedback
@@ -170,13 +171,13 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
               child: Text(labels[v.toInt()],
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
-                  fontSize: 9, color: Colors.white38)),
+                  fontSize: 9, color: context.textHint)),
             ),
           )),
           leftTitles: AxisTitles(sideTitles: SideTitles(
             showTitles: true, reservedSize: 28,
             getTitlesWidget: (v, _) => Text('${v.toInt()}',
-              style: GoogleFonts.outfit(fontSize: 10, color: Colors.white24)),
+              style: GoogleFonts.outfit(fontSize: 10, color: context.textDisabled)),
           )),
           rightTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false)),
@@ -187,7 +188,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
           show: true,
           drawVerticalLine: false,
           getDrawingHorizontalLine: (_) =>
-              const FlLine(color: Colors.white10, strokeWidth: 1),
+              FlLine(color: context.borderMid, strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
       )),
@@ -219,7 +220,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
               getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
                 radius: 4,
                 color: const Color(0xFFFFD700),
-                strokeColor: const Color(0xFF0A0A1F),
+                strokeColor: context.bgPrimary,
                 strokeWidth: 2,
               ),
             ),
@@ -233,12 +234,12 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
           leftTitles: AxisTitles(sideTitles: SideTitles(
             showTitles: true, reservedSize: 32,
             getTitlesWidget: (v, _) => Text('${v.toInt()}%',
-              style: GoogleFonts.outfit(fontSize: 10, color: Colors.white24)),
+              style: GoogleFonts.outfit(fontSize: 10, color: context.textDisabled)),
           )),
           bottomTitles: AxisTitles(sideTitles: SideTitles(
             showTitles: true,
             getTitlesWidget: (v, _) => Text('P${v.toInt() + 1}',
-              style: GoogleFonts.outfit(fontSize: 10, color: Colors.white38)),
+              style: GoogleFonts.outfit(fontSize: 10, color: context.textHint)),
           )),
           rightTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false)),
@@ -248,7 +249,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
         gridData: FlGridData(
           drawVerticalLine: false,
           getDrawingHorizontalLine: (_) =>
-              const FlLine(color: Colors.white10, strokeWidth: 1),
+              FlLine(color: context.borderMid, strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
       )),
@@ -300,13 +301,13 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
               padding: const EdgeInsets.only(top: 6),
               child: Text(keys[v.toInt()],
                 style: GoogleFonts.outfit(
-                  fontSize: 9, color: Colors.white38)),
+                  fontSize: 9, color: context.textHint)),
             ),
           )),
           leftTitles: AxisTitles(sideTitles: SideTitles(
             showTitles: true, reservedSize: 28,
             getTitlesWidget: (v, _) => Text('${v.toInt()}',
-              style: GoogleFonts.outfit(fontSize: 10, color: Colors.white24)),
+              style: GoogleFonts.outfit(fontSize: 10, color: context.textDisabled)),
           )),
           rightTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false)),
@@ -316,7 +317,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
         gridData: FlGridData(
           drawVerticalLine: false,
           getDrawingHorizontalLine: (_) =>
-              const FlLine(color: Colors.white10, strokeWidth: 1),
+              FlLine(color: context.borderMid, strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
       )),
@@ -359,14 +360,14 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                 padding: const EdgeInsets.only(top: 4),
                 child: Text('L${sorted[idx].key}',
                   style: GoogleFonts.outfit(
-                    fontSize: 9, color: Colors.white38)),
+                    fontSize: 9, color: context.textHint)),
               );
             },
           )),
           leftTitles: AxisTitles(sideTitles: SideTitles(
             showTitles: true, reservedSize: 28,
             getTitlesWidget: (v, _) => Text('${v.toInt()}',
-              style: GoogleFonts.outfit(fontSize: 10, color: Colors.white24)),
+              style: GoogleFonts.outfit(fontSize: 10, color: context.textDisabled)),
           )),
           rightTitles: const AxisTitles(
             sideTitles: SideTitles(showTitles: false)),
@@ -376,7 +377,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
         gridData: FlGridData(
           drawVerticalLine: false,
           getDrawingHorizontalLine: (_) =>
-              const FlLine(color: Colors.white10, strokeWidth: 1),
+              FlLine(color: context.borderMid, strokeWidth: 1),
         ),
         borderData: FlBorderData(show: false),
       )),
@@ -388,9 +389,9 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
       height: height,
       padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF12122A),
+        color: context.bgCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: context.borderSubtle),
       ),
       child: child,
     );
@@ -399,12 +400,12 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
     height: 100,
     alignment: Alignment.center,
     decoration: BoxDecoration(
-      color: const Color(0xFF12122A),
+      color: context.bgCard,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Colors.white.withOpacity(0.06)),
+      border: Border.all(color: context.borderSubtle),
     ),
     child: Text(msg,
-      style: GoogleFonts.outfit(fontSize: 13, color: Colors.white24)),
+      style: GoogleFonts.outfit(fontSize: 13, color: context.textDisabled)),
   );
 }
 
@@ -430,7 +431,7 @@ class _StatTile extends StatelessWidget {
         const SizedBox(height: 2),
         Text(label,
           textAlign: TextAlign.center,
-          style: GoogleFonts.outfit(fontSize: 10, color: Colors.white38)),
+          style: GoogleFonts.outfit(fontSize: 10, color: context.textHint)),
       ]),
     ),
   );

@@ -5,6 +5,7 @@ import 'package:shimmer/shimmer.dart';
 
 import '../../providers/user_provider.dart';
 import '../../services/gamification_service.dart';
+import '../../theme/app_theme.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
@@ -49,12 +50,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     return RefreshIndicator(
       onRefresh: _load,
       color: const Color(0xFFC9A84C),
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: context.bgSurface,
       child: _loading ? _shimmer() : ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Text('Top students ranked by XP earned',
-            style: GoogleFonts.outfit(fontSize: 13, color: Colors.white38),
+            style: GoogleFonts.outfit(fontSize: 13, color: context.textHint),
           ),
 
           // Podium for top 3
@@ -83,23 +84,23 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   }
 
   Widget _shimmer() => Shimmer.fromColors(
-    baseColor: const Color(0xFF1A1A2E),
-    highlightColor: const Color(0xFF2A2A3E),
+    baseColor: context.bgSurface,
+    highlightColor: context.bgCard,
     child: ListView(padding: const EdgeInsets.all(16), children: [
       Container(height: 24, width: 160,
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: context.bgSurface,
           borderRadius: BorderRadius.circular(6))),
       const SizedBox(height: 20),
       Container(height: 160,
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: context.bgSurface,
           borderRadius: BorderRadius.circular(16))),
       const SizedBox(height: 16),
       for (int i = 0; i < 6; i++) ...[
         Container(height: 64,
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A2E),
+            color: context.bgSurface,
             borderRadius: BorderRadius.circular(12))),
         const SizedBox(height: 10),
       ],
@@ -144,7 +145,7 @@ class _Podium extends StatelessWidget {
                   fontSize: 12, color: colors[i], fontWeight: FontWeight.w700),
               ),
               Text('${entry['xp']} XP',
-                style: GoogleFonts.outfit(fontSize: 10, color: Colors.white38)),
+                style: GoogleFonts.outfit(fontSize: 10, color: context.textHint)),
               const SizedBox(height: 6),
               Container(
                 height: h,
@@ -185,19 +186,19 @@ class _LeaderboardRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: isMe
             ? const Color(0xFFC9A84C).withOpacity(0.08)
-            : const Color(0xFF1A1A2E),
+            : context.bgSurface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isMe
               ? const Color(0xFFC9A84C).withOpacity(0.3)
-              : Colors.white.withOpacity(0.06),
+              : context.borderSubtle,
         ),
       ),
       child: Row(children: [
         SizedBox(width: 30,
           child: Text('#$rank',
             style: GoogleFonts.outfit(
-              fontSize: 13, color: Colors.white38,
+              fontSize: 13, color: context.textHint,
               fontWeight: FontWeight.w700),
           ),
         ),
@@ -216,11 +217,11 @@ class _LeaderboardRow extends StatelessWidget {
             Text(name,
               style: GoogleFonts.outfit(
                 fontSize: 14, fontWeight: FontWeight.w600,
-                color: isMe ? const Color(0xFFC9A84C) : Colors.white),
+                color: isMe ? const Color(0xFFC9A84C) : context.textPrimary),
             ),
             Text('Level ${entry['level']}  •  '
                 '${entry['streak_days']}🔥 streak',
-              style: GoogleFonts.outfit(fontSize: 11, color: Colors.white30)),
+              style: GoogleFonts.outfit(fontSize: 11, color: context.textHint)),
           ],
         )),
         Text('${entry['xp']} XP',

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../services/analytics_service.dart';
+import '../../theme/app_theme.dart';
 
 const _susQuestions = [
   'I think that I would like to use this system frequently.',
@@ -78,13 +79,13 @@ class _SusSurveyScreenState extends State<SusSurveyScreen> {
     if (_submitted) return _ThankYouView(score: _calculateSusScore());
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: context.bgPrimary,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: context.bgPrimary,
+        iconTheme: IconThemeData(color: context.textPrimary),
         title: Text('Usability Survey (SUS)',
           style: GoogleFonts.outfit(
-            fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white),
+            fontSize: 18, fontWeight: FontWeight.w700, color: context.textPrimary),
         ),
       ),
       body: Column(children: [
@@ -115,7 +116,7 @@ class _SusSurveyScreenState extends State<SusSurveyScreen> {
                         'For each statement, indicate how strongly you agree or disagree '
                         'on a scale of 1 (Strongly Disagree) to 5 (Strongly Agree).',
                         style: GoogleFonts.outfit(
-                          fontSize: 12, color: Colors.white54, height: 1.4),
+                          fontSize: 12, color: context.textSecondary, height: 1.4),
                       ),
                     ],
                   ),
@@ -138,24 +139,24 @@ class _SusSurveyScreenState extends State<SusSurveyScreen> {
                 // Open feedback
                 Text('Additional Feedback (Optional)',
                   style: GoogleFonts.outfit(
-                    fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                    fontSize: 14, fontWeight: FontWeight.w600, color: context.textPrimary),
                 ),
                 const SizedBox(height: 8),
                 TextField(
                   maxLines: 4,
-                  style: GoogleFonts.outfit(color: Colors.white),
+                  style: GoogleFonts.outfit(color: context.textPrimary),
                   onChanged: (v) => _openFeedback = v,
                   decoration: InputDecoration(
                     hintText: 'Any comments about your experience with Arete...',
-                    hintStyle: GoogleFonts.outfit(color: Colors.white24, fontSize: 13),
+                    hintStyle: GoogleFonts.outfit(color: context.textDisabled, fontSize: 13),
                     filled: true,
-                    fillColor: const Color(0xFF1A1A2E),
+                    fillColor: context.bgSurface,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.white12)),
+                      borderSide: BorderSide(color: context.borderMid)),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Colors.white12)),
+                      borderSide: BorderSide(color: context.borderMid)),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(color: Color(0xFFC9A84C))),
@@ -167,7 +168,7 @@ class _SusSurveyScreenState extends State<SusSurveyScreen> {
                   style: GoogleFonts.outfit(fontSize: 12,
                     color: _allAnswered
                         ? const Color(0xFF4CAF50)
-                        : Colors.white38),
+                        : context.textHint),
                 ),
                 const SizedBox(height: 80),
               ],
@@ -177,9 +178,9 @@ class _SusSurveyScreenState extends State<SusSurveyScreen> {
         // Submit bar
         Container(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          decoration: const BoxDecoration(
-            color: Color(0xFF0F0F1A),
-            border: Border(top: BorderSide(color: Colors.white12)),
+          decoration: BoxDecoration(
+            color: context.bgPrimary,
+            border: Border(top: BorderSide(color: context.borderMid)),
           ),
           child: SizedBox(
             width: double.infinity, height: 50,
@@ -188,13 +189,13 @@ class _SusSurveyScreenState extends State<SusSurveyScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _allAnswered
                     ? const Color(0xFFC9A84C)
-                    : const Color(0xFF1A1A2E),
-                foregroundColor: _allAnswered ? Colors.black : Colors.white38,
+                    : context.bgSurface,
+                foregroundColor: _allAnswered ? Colors.black : context.textHint,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14)),
                 side: _allAnswered
                     ? null
-                    : const BorderSide(color: Colors.white12),
+                    : BorderSide(color: context.borderMid),
               ),
               child: _submitting
                   ? const SizedBox(width: 20, height: 20,
@@ -228,12 +229,12 @@ class _QuestionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: context.bgSurface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: value != null
               ? const Color(0xFFC9A84C).withOpacity(0.3)
-              : Colors.white.withOpacity(0.06),
+              : context.borderSubtle,
         ),
       ),
       child: Column(
@@ -247,7 +248,7 @@ class _QuestionCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: value != null
                       ? const Color(0xFFC9A84C).withOpacity(0.15)
-                      : Colors.white.withOpacity(0.06),
+                      : context.borderSubtle,
                   shape: BoxShape.circle,
                 ),
                 child: Center(child: Text('$number',
@@ -255,13 +256,13 @@ class _QuestionCard extends StatelessWidget {
                     fontSize: 12, fontWeight: FontWeight.w700,
                     color: value != null
                         ? const Color(0xFFC9A84C)
-                        : Colors.white38),
+                        : context.textHint),
                 )),
               ),
               const SizedBox(width: 10),
               Expanded(child: Text(question,
                 style: GoogleFonts.outfit(
-                  fontSize: 13, color: Colors.white, height: 1.45),
+                  fontSize: 13, color: context.textPrimary, height: 1.45),
               )),
             ],
           ),
@@ -271,7 +272,7 @@ class _QuestionCard extends StatelessWidget {
             children: [
               Text('Strongly\nDisagree',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(fontSize: 9, color: Colors.white30),
+                style: GoogleFonts.outfit(fontSize: 9, color: context.textHint),
               ),
               Expanded(
                 child: Row(
@@ -289,18 +290,18 @@ class _QuestionCard extends StatelessWidget {
                           shape: BoxShape.circle,
                           color: selected
                               ? const Color(0xFFC9A84C)
-                              : const Color(0xFF0F0F1A),
+                              : context.bgPrimary,
                           border: Border.all(
                             color: selected
                                 ? const Color(0xFFC9A84C)
-                                : Colors.white24,
+                                : context.textDisabled,
                             width: selected ? 2 : 1,
                           ),
                         ),
                         child: Center(child: Text('$v',
                           style: GoogleFonts.outfit(
                             fontSize: 14, fontWeight: FontWeight.w700,
-                            color: selected ? Colors.black : Colors.white54),
+                            color: selected ? Colors.black : context.textSecondary),
                         )),
                       ),
                     );
@@ -309,7 +310,7 @@ class _QuestionCard extends StatelessWidget {
               ),
               Text('Strongly\nAgree',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(fontSize: 9, color: Colors.white30),
+                style: GoogleFonts.outfit(fontSize: 9, color: context.textHint),
               ),
             ],
           ),
@@ -334,7 +335,7 @@ class _ThankYouView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: context.bgPrimary,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -347,23 +348,23 @@ class _ThankYouView extends StatelessWidget {
                 const SizedBox(height: 20),
                 Text('Thank you! 🙏',
                   style: GoogleFonts.outfit(
-                    fontSize: 28, fontWeight: FontWeight.w800, color: Colors.white),
+                    fontSize: 28, fontWeight: FontWeight.w800, color: context.textPrimary),
                 ),
                 const SizedBox(height: 8),
                 Text('Your survey has been submitted.',
-                  style: GoogleFonts.outfit(fontSize: 15, color: Colors.white54)),
+                  style: GoogleFonts.outfit(fontSize: 15, color: context.textSecondary)),
                 const SizedBox(height: 28),
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A2E),
+                    color: context.bgSurface,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.white.withOpacity(0.06)),
+                    border: Border.all(color: context.borderSubtle),
                   ),
                   child: Column(children: [
                     Text('Your SUS Score',
                       style: GoogleFonts.outfit(
-                        fontSize: 13, color: Colors.white38)),
+                        fontSize: 13, color: context.textHint)),
                     const SizedBox(height: 8),
                     Text(score.toStringAsFixed(1),
                       style: GoogleFonts.outfit(
@@ -372,13 +373,13 @@ class _ThankYouView extends StatelessWidget {
                     ),
                     Text(_interpretation,
                       style: GoogleFonts.outfit(
-                        fontSize: 14, color: Colors.white70,
+                        fontSize: 14, color: context.textSecondary,
                         fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 4),
                     Text('(SUS industry benchmark: 68)',
                       style: GoogleFonts.outfit(
-                        fontSize: 11, color: Colors.white30),
+                        fontSize: 11, color: context.textHint),
                     ),
                   ]),
                 ),
@@ -388,7 +389,7 @@ class _ThankYouView extends StatelessWidget {
                   'It helps improve Arete for future learners.',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.outfit(
-                    fontSize: 13, color: Colors.white38, height: 1.5),
+                    fontSize: 13, color: context.textHint, height: 1.5),
                 ),
                 const SizedBox(height: 32),
                 SizedBox(

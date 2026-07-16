@@ -6,6 +6,7 @@ import '../../models/skill_mastery.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/gamification_service.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/skill_radar_chart.dart';
 
 class StudentModelDashboard extends StatefulWidget {
@@ -67,7 +68,7 @@ class _StudentModelDashboardState extends State<StudentModelDashboard> {
         if (prov.profile != null) await prov.loadProfile(prov.profile!.id);
       },
       color: const Color(0xFFC9A84C),
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: context.bgSurface,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
@@ -75,7 +76,7 @@ class _StudentModelDashboardState extends State<StudentModelDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Open Student Model — transparent view of your progress',
-              style: GoogleFonts.outfit(fontSize: 13, color: Colors.white38),
+              style: GoogleFonts.outfit(fontSize: 13, color: context.textHint),
             ),
             const SizedBox(height: 20),
 
@@ -84,9 +85,9 @@ class _StudentModelDashboardState extends State<StudentModelDashboard> {
               height: 300,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2E),
+                color: context.bgSurface,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.06)),
+                border: Border.all(color: context.borderSubtle),
               ),
               child: loading
                   ? const Center(child: CircularProgressIndicator(
@@ -143,11 +144,11 @@ class _StudentModelDashboardState extends State<StudentModelDashboard> {
               Center(child: Padding(
                 padding: const EdgeInsets.only(top: 20),
                 child: Column(children: [
-                  const Icon(Icons.radar, color: Colors.white12, size: 64),
+                  Icon(Icons.radar, color: context.textDisabled, size: 64),
                   const SizedBox(height: 12),
                   Text('Complete your first lesson to populate your skill map.',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.outfit(color: Colors.white38, fontSize: 14)),
+                    style: GoogleFonts.outfit(color: context.textHint, fontSize: 14)),
                 ]),
               ))
             else ...[
@@ -180,7 +181,7 @@ class _StudentModelDashboardState extends State<StudentModelDashboard> {
               // Full breakdown
               Text('All Skills',
                 style: GoogleFonts.outfit(
-                  fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
+                  fontSize: 17, fontWeight: FontWeight.w700, color: context.textPrimary),
               ),
               const SizedBox(height: 12),
               ...skills.map((s) => _SkillRow(skill: s)),
@@ -228,9 +229,9 @@ class _SkillRow extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: context.bgSurface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: context.borderSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,7 +241,7 @@ class _SkillRow extends StatelessWidget {
             children: [
               Text(skill.skillName,
                 style: GoogleFonts.outfit(
-                  fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                  fontSize: 14, fontWeight: FontWeight.w600, color: context.textPrimary),
               ),
               Text(skill.masteryLabel,
                 style: GoogleFonts.outfit(
@@ -254,13 +255,13 @@ class _SkillRow extends StatelessWidget {
             child: LinearProgressIndicator(
               value: pct,
               minHeight: 7,
-              backgroundColor: Colors.white10,
+              backgroundColor: context.borderMid,
               valueColor: AlwaysStoppedAnimation<Color>(barColor),
             ),
           ),
           const SizedBox(height: 4),
           Text('${(pct * 100).toStringAsFixed(0)}% mastery',
-            style: GoogleFonts.outfit(fontSize: 11, color: Colors.white30),
+            style: GoogleFonts.outfit(fontSize: 11, color: context.textHint),
           ),
         ],
       ),
@@ -292,7 +293,7 @@ class _GoalSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: context.bgSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: const Color(0xFF9B59B6).withOpacity(0.3)),
@@ -303,7 +304,7 @@ class _GoalSection extends StatelessWidget {
           const SizedBox(width: 8),
           Text('Learning Goal',
             style: GoogleFonts.outfit(
-              fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+              fontSize: 15, fontWeight: FontWeight.w700, color: context.textPrimary)),
         ]),
         const SizedBox(height: 12),
         if (loading)
@@ -312,45 +313,43 @@ class _GoalSection extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation(Color(0xFF9B59B6)))))
         else if (skills.isEmpty)
           Text('Complete a lesson first to set a skill goal.',
-            style: GoogleFonts.outfit(fontSize: 13, color: Colors.white38))
+            style: GoogleFonts.outfit(fontSize: 13, color: context.textHint))
         else ...[
           Text('Target skill',
-            style: GoogleFonts.outfit(fontSize: 12, color: Colors.white38)),
+            style: GoogleFonts.outfit(fontSize: 12, color: context.textHint)),
           const SizedBox(height: 6),
           DropdownButtonFormField<String>(
             value: goalSkill,
             hint: Text('Choose a skill',
-              style: GoogleFonts.outfit(fontSize: 13, color: Colors.white38)),
-            dropdownColor: const Color(0xFF1A1A2E),
-            style: GoogleFonts.outfit(fontSize: 13, color: Colors.white),
+              style: GoogleFonts.outfit(fontSize: 13, color: context.textHint)),
+            dropdownColor: context.bgSurface,
+            style: GoogleFonts.outfit(fontSize: 13, color: context.textPrimary),
             decoration: InputDecoration(
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 12, vertical: 10),
-              filled: true, fillColor: const Color(0xFF0A0A1F),
+              filled: true, fillColor: context.bgPrimary,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
-                  color: Colors.white.withOpacity(0.1))),
+                borderSide: BorderSide(color: context.borderMid)),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(
-                  color: Colors.white.withOpacity(0.1))),
+                borderSide: BorderSide(color: context.borderMid)),
             ),
             items: skills.map((s) => DropdownMenuItem(
               value: s,
               child: Text(s,
-                style: GoogleFonts.outfit(fontSize: 13, color: Colors.white)),
+                style: GoogleFonts.outfit(fontSize: 13, color: context.textPrimary)),
             )).toList(),
             onChanged: (v) { if (v != null) onChanged(v, goalPct); },
           ),
           const SizedBox(height: 12),
           Text('Target mastery: $goalPct%',
-            style: GoogleFonts.outfit(fontSize: 12, color: Colors.white54)),
+            style: GoogleFonts.outfit(fontSize: 12, color: context.textSecondary)),
           Slider(
             value: goalPct.toDouble(),
             min: 50, max: 100, divisions: 10,
             activeColor: const Color(0xFF9B59B6),
-            inactiveColor: Colors.white12,
+            inactiveColor: context.borderMid,
             label: '$goalPct%',
             onChanged: (v) => onChanged(goalSkill ?? skills.first, v.toInt()),
           ),
@@ -361,7 +360,7 @@ class _GoalSection extends StatelessWidget {
               onPressed: (saving || goalSkill == null) ? null : onSave,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF9B59B6),
-                disabledBackgroundColor: Colors.white12,
+                disabledBackgroundColor: context.borderMid,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),

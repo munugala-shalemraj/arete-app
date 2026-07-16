@@ -56,18 +56,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.person_off_outlined,
-                  color: Colors.white24, size: 64),
+              Icon(Icons.person_off_outlined,
+                  color: context.textDisabled, size: 64),
               const SizedBox(height: 16),
               Text('Could not load profile',
                 style: GoogleFonts.outfit(
-                  fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white),
+                  fontSize: 18, fontWeight: FontWeight.w700, color: context.textPrimary),
               ),
               const SizedBox(height: 8),
               Text(
                 userProvider.error ?? 'No profile found for this account.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(fontSize: 13, color: Colors.white38),
+                style: GoogleFonts.outfit(fontSize: 13, color: context.textHint),
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
@@ -104,9 +104,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A2E),
+              color: context.bgSurface,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.06)),
+              border: Border.all(color: context.borderSubtle),
             ),
             child: Column(children: [
               CircleAvatar(
@@ -123,14 +123,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 12),
               Text(profile.displayName ?? profile.username,
                 style: GoogleFonts.outfit(
-                  fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+                  fontSize: 20, fontWeight: FontWeight.w700, color: context.textPrimary),
               ),
               Text('@${profile.username}',
-                style: GoogleFonts.outfit(fontSize: 13, color: Colors.white38)),
+                style: GoogleFonts.outfit(fontSize: 13, color: context.textHint)),
               const SizedBox(height: 4),
               Text(
                 'Member since ${DateFormat("MMMM yyyy").format(profile.createdAt)}',
-                style: GoogleFonts.outfit(fontSize: 12, color: Colors.white24),
+                style: GoogleFonts.outfit(fontSize: 12, color: context.textDisabled),
               ),
               const SizedBox(height: 16),
               XpBar(
@@ -167,7 +167,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Text('Badge Collection',
                 style: GoogleFonts.outfit(
-                  fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
+                  fontSize: 17, fontWeight: FontWeight.w700, color: context.textPrimary),
               ),
               Text('${earnedBadges.length}/${_allBadges.length}',
                 style: GoogleFonts.outfit(
@@ -320,20 +320,20 @@ class _StatCard extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: context.bgSurface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: context.borderSubtle),
       ),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Icon(icon, color: color, size: 18),
         const SizedBox(height: 5),
         Text(value,
           style: GoogleFonts.outfit(
-            fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
+            fontSize: 18, fontWeight: FontWeight.w800, color: context.textPrimary),
         ),
         Text(label,
           textAlign: TextAlign.center,
-          style: GoogleFonts.outfit(fontSize: 10, color: Colors.white38),
+          style: GoogleFonts.outfit(fontSize: 10, color: context.textHint),
         ),
       ]),
     ),
@@ -351,13 +351,13 @@ class _BadgeGridItem extends StatelessWidget {
       onTap: () => showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A2E),
+          backgroundColor: context.bgSurface,
           title: Text(badge.name,
             style: GoogleFonts.outfit(
-              color: earned ? const Color(0xFFC9A84C) : Colors.white38,
+              color: earned ? const Color(0xFFC9A84C) : context.textHint,
               fontWeight: FontWeight.w700)),
           content: Text(badge.description ?? '',
-            style: GoogleFonts.outfit(color: Colors.white54)),
+            style: GoogleFonts.outfit(color: context.textSecondary)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -371,12 +371,12 @@ class _BadgeGridItem extends StatelessWidget {
         decoration: BoxDecoration(
           color: earned
               ? const Color(0xFFC9A84C).withOpacity(0.1)
-              : const Color(0xFF1A1A2E),
+              : context.bgSurface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: earned
                 ? const Color(0xFFC9A84C).withOpacity(0.4)
-                : Colors.white.withOpacity(0.06),
+                : context.borderSubtle,
           ),
         ),
         child: Column(
@@ -384,7 +384,7 @@ class _BadgeGridItem extends StatelessWidget {
           children: [
             Icon(
               earned ? Icons.emoji_events : Icons.lock_outline,
-              color: earned ? const Color(0xFFC9A84C) : Colors.white12,
+              color: earned ? const Color(0xFFC9A84C) : context.textDisabled,
               size: 26,
             ),
             const SizedBox(height: 4),
@@ -396,7 +396,7 @@ class _BadgeGridItem extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.outfit(
                   fontSize: 9,
-                  color: earned ? Colors.white70 : Colors.white24,
+                  color: earned ? context.textSecondary : context.textDisabled,
                   fontWeight: FontWeight.w500),
               ),
             ),

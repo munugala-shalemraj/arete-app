@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../services/analytics_service.dart';
+import '../../theme/app_theme.dart';
 
 // Intrinsic Motivation Inventory (IMI) — short form
 // 4 subscales x 4 items = 16 items total, rated 1–7
@@ -91,14 +92,14 @@ class _ImiSurveyScreenState extends State<ImiSurveyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A1F),
+      backgroundColor: context.bgPrimary,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0A1F),
+        backgroundColor: context.bgPrimary,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: context.textPrimary),
         title: Text('Motivation Survey (IMI)',
           style: GoogleFonts.outfit(
-            fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+            fontSize: 18, fontWeight: FontWeight.w700, color: context.textPrimary)),
       ),
       body: _submitted ? _doneView() : _surveyView(),
     );
@@ -120,14 +121,14 @@ class _ImiSurveyScreenState extends State<ImiSurveyScreen> {
         const SizedBox(height: 24),
         Text('Survey Complete!',
           style: GoogleFonts.outfit(
-            fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
+            fontSize: 24, fontWeight: FontWeight.w800, color: context.textPrimary)),
         const SizedBox(height: 10),
         Text(
           'Your responses have been recorded.\n'
           'These help us understand what motivates learning on Arete.',
           textAlign: TextAlign.center,
           style: GoogleFonts.outfit(
-            fontSize: 14, color: Colors.white54, height: 1.6)),
+            fontSize: 14, color: context.textSecondary, height: 1.6)),
         const SizedBox(height: 28),
         _ScoreTile('Interest / Enjoyment',
           _subscaleMean('interest'), const Color(0xFFFFD700)),
@@ -172,7 +173,7 @@ class _ImiSurveyScreenState extends State<ImiSurveyScreen> {
     return Column(children: [
       LinearProgressIndicator(
         value: _responses.length / _items.length,
-        backgroundColor: Colors.white12,
+        backgroundColor: context.borderMid,
         valueColor: const AlwaysStoppedAnimation(Color(0xFFFFD700)),
         minHeight: 3,
       ),
@@ -184,7 +185,7 @@ class _ImiSurveyScreenState extends State<ImiSurveyScreen> {
               'Rate each statement from 1 (Not at all true) to 7 (Very true) '
               'based on your experience with Arete over the study period.',
               style: GoogleFonts.outfit(
-                fontSize: 13, color: Colors.white54, height: 1.5)),
+                fontSize: 13, color: context.textSecondary, height: 1.5)),
             const SizedBox(height: 24),
             for (final (label, key, color, subtitle) in sections) ...[
               _SectionHeader(label: label, color: color, subtitle: subtitle),
@@ -203,16 +204,16 @@ class _ImiSurveyScreenState extends State<ImiSurveyScreen> {
       ),
       Container(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        color: const Color(0xFF0A0A1F),
+        color: context.bgPrimary,
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(
             onPressed: _complete ? _submit : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFFD700),
-              disabledBackgroundColor: Colors.white12,
+              disabledBackgroundColor: context.borderMid,
               foregroundColor: Colors.black,
-              disabledForegroundColor: Colors.white24,
+              disabledForegroundColor: context.textDisabled,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14)),
               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -254,13 +255,13 @@ class _SectionHeader extends StatelessWidget {
         const SizedBox(width: 10),
         Text(label,
           style: GoogleFonts.outfit(
-            fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+            fontSize: 16, fontWeight: FontWeight.w700, color: context.textPrimary)),
       ]),
       const SizedBox(height: 4),
       Padding(
         padding: const EdgeInsets.only(left: 14),
         child: Text(subtitle,
-          style: GoogleFonts.outfit(fontSize: 12, color: Colors.white38)),
+          style: GoogleFonts.outfit(fontSize: 12, color: context.textHint)),
       ),
     ],
   );
@@ -283,40 +284,40 @@ class _ItemCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF12122A),
+        color: context.bgCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: value != null
               ? color.withOpacity(0.4)
-              : Colors.white.withOpacity(0.07)),
+              : context.borderSubtle),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(
             child: Text(item.text,
               style: GoogleFonts.outfit(
-                fontSize: 14, color: Colors.white, height: 1.5)),
+                fontSize: 14, color: context.textPrimary, height: 1.5)),
           ),
           if (item.reverse)
             Container(
               margin: const EdgeInsets.only(left: 8),
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.06),
+                color: context.borderSubtle,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text('R',
                 style: GoogleFonts.outfit(
-                  fontSize: 10, color: Colors.white38,
+                  fontSize: 10, color: context.textHint,
                   fontWeight: FontWeight.w700)),
             ),
         ]),
         const SizedBox(height: 14),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           Text('Not at all true',
-            style: GoogleFonts.outfit(fontSize: 9, color: Colors.white38)),
+            style: GoogleFonts.outfit(fontSize: 9, color: context.textHint)),
           Text('Very true',
-            style: GoogleFonts.outfit(fontSize: 9, color: Colors.white38)),
+            style: GoogleFonts.outfit(fontSize: 9, color: context.textHint)),
         ]),
         const SizedBox(height: 6),
         Row(
@@ -331,9 +332,9 @@ class _ItemCard extends StatelessWidget {
                 width: 36, height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: selected ? color : Colors.white.withOpacity(0.05),
+                  color: selected ? color : context.borderSubtle,
                   border: Border.all(
-                    color: selected ? color : Colors.white24,
+                    color: selected ? color : context.textDisabled,
                     width: selected ? 2 : 1),
                 ),
                 child: Center(
@@ -341,7 +342,7 @@ class _ItemCard extends StatelessWidget {
                     style: GoogleFonts.outfit(
                       fontSize: 13,
                       fontWeight: selected ? FontWeight.w800 : FontWeight.w400,
-                      color: selected ? Colors.black : Colors.white54)),
+                      color: selected ? Colors.black : context.textSecondary)),
                 ),
               ),
             );
@@ -370,12 +371,12 @@ class _ScoreTile extends StatelessWidget {
     child: Row(children: [
       Expanded(child: Text(label,
         style: GoogleFonts.outfit(
-          fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white))),
+          fontSize: 13, fontWeight: FontWeight.w600, color: context.textPrimary))),
       Text(score.toStringAsFixed(2),
         style: GoogleFonts.outfit(
           fontSize: 20, fontWeight: FontWeight.w800, color: color)),
       Text(' / 7',
-        style: GoogleFonts.outfit(fontSize: 12, color: Colors.white38)),
+        style: GoogleFonts.outfit(fontSize: 12, color: context.textHint)),
     ]),
   );
 }

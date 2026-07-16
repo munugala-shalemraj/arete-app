@@ -147,7 +147,7 @@ class _QuizScreenState extends State<QuizScreen> {
       context: context,
       isDismissible: false,
       enableDrag: false,
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: context.bgSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -179,27 +179,27 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF0F0F1A),
-        body: Center(child: CircularProgressIndicator(
+      return Scaffold(
+        backgroundColor: context.bgPrimary,
+        body: const Center(child: CircularProgressIndicator(
           valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC9A84C)))),
       );
     }
 
     if (_questions.isEmpty) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: context.bgPrimary,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
-          iconTheme: const IconThemeData(color: Colors.white),
+          iconTheme: IconThemeData(color: context.textPrimary),
         ),
         body: Center(child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.quiz_outlined, color: Colors.white24, size: 64),
+            Icon(Icons.quiz_outlined, color: context.textDisabled, size: 64),
             const SizedBox(height: 16),
             Text('No questions yet for this lesson.',
-              style: GoogleFonts.outfit(color: Colors.white38)),
+              style: GoogleFonts.outfit(color: context.textHint)),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: context.pop,
@@ -217,17 +217,17 @@ class _QuizScreenState extends State<QuizScreen> {
     final correct = _checked && q.isCorrect(_selectedOption ?? '');
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: context.bgPrimary,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: context.bgPrimary,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white54),
+          icon: Icon(Icons.close, color: context.textSecondary),
           onPressed: () => _confirmExit(context),
         ),
         title: Text(
           'Q${_currentIndex + 1} of ${_questions.length}',
-          style: GoogleFonts.outfit(color: Colors.white70, fontSize: 15),
+          style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 15),
         ),
         centerTitle: true,
         bottom: PreferredSize(
@@ -237,7 +237,7 @@ class _QuizScreenState extends State<QuizScreen> {
             child: LinearProgressIndicator(
               value: (_currentIndex + 1) / _questions.length,
               minHeight: 4,
-              backgroundColor: Colors.white12,
+              backgroundColor: context.borderMid,
               valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFC9A84C)),
             ),
           ),
@@ -270,7 +270,7 @@ class _QuizScreenState extends State<QuizScreen> {
                 Text(q.questionText,
                   style: GoogleFonts.outfit(
                     fontSize: 19, fontWeight: FontWeight.w700,
-                    color: Colors.white, height: 1.4),
+                    color: context.textPrimary, height: 1.4),
                 ),
                 const SizedBox(height: 28),
                 for (final opt in ['a', 'b', 'c', 'd'])
@@ -317,7 +317,7 @@ class _QuizScreenState extends State<QuizScreen> {
                         Expanded(
                           child: Text(q.explanation!,
                             style: GoogleFonts.outfit(
-                              color: Colors.white70, fontSize: 13, height: 1.5),
+                              color: context.textSecondary, fontSize: 13, height: 1.5),
                           ),
                         ),
                       ],
@@ -358,7 +358,7 @@ class _QuizScreenState extends State<QuizScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _selectedOption != null
                           ? const Color(0xFF4F8EF7)
-                          : const Color(0xFF1A1A2E),
+                          : context.bgSurface,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
@@ -378,11 +378,11 @@ class _QuizScreenState extends State<QuizScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: context.bgSurface,
         title: Text('Quit quiz?',
-          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700)),
+          style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.w700)),
         content: Text('Your progress will be lost.',
-          style: GoogleFonts.outfit(color: Colors.white54)),
+          style: GoogleFonts.outfit(color: context.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -557,17 +557,17 @@ class _ResultSheetState extends State<_ResultSheet>
             width: 40, height: 4,
             margin: const EdgeInsets.only(bottom: 20),
             decoration: BoxDecoration(
-              color: Colors.white24,
+              color: context.textDisabled,
               borderRadius: BorderRadius.circular(2)),
           ),
           Text(
             widget.isPerfect ? '⭐ Perfect Score!' : passed ? '🎉 Well done!' : '📚 Keep going!',
             style: GoogleFonts.outfit(
-              fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white),
+              fontSize: 24, fontWeight: FontWeight.w800, color: context.textPrimary),
           ),
           const SizedBox(height: 8),
           Text(widget.lessonTitle,
-            style: GoogleFonts.outfit(fontSize: 14, color: Colors.white38)),
+            style: GoogleFonts.outfit(fontSize: 14, color: context.textHint)),
           const SizedBox(height: 28),
           // Score circle
           Container(
@@ -583,7 +583,7 @@ class _ResultSheetState extends State<_ResultSheet>
                   fontSize: 32, fontWeight: FontWeight.w900, color: resultColor),
               ),
               Text('${(pct * 100).toInt()}%',
-                style: GoogleFonts.outfit(fontSize: 14, color: Colors.white54)),
+                style: GoogleFonts.outfit(fontSize: 14, color: context.textSecondary)),
             ]),
           ),
           const SizedBox(height: 20),
@@ -606,8 +606,8 @@ class _ResultSheetState extends State<_ResultSheet>
               Expanded(child: OutlinedButton(
                 onPressed: widget.onRetry,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white54,
-                  side: const BorderSide(color: Colors.white24),
+                  foregroundColor: context.textSecondary,
+                  side: BorderSide(color: context.textDisabled),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 14),

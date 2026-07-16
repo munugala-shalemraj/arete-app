@@ -8,6 +8,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../models/lesson.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/analytics_service.dart';
+import '../../theme/app_theme.dart';
 import '../../services/cache_service.dart';
 import '../../services/lesson_service.dart';
 import '../../services/quiz_service.dart';
@@ -82,7 +83,7 @@ class _TopicListScreenState extends State<TopicListScreen> {
     children: [
       const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
       const SizedBox(height: 12),
-      Text(_error!, style: GoogleFonts.outfit(color: Colors.white54, fontSize: 13)),
+      Text(_error!, style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 13)),
       const SizedBox(height: 16),
       ElevatedButton(
         onPressed: _fetchTopics,
@@ -106,8 +107,8 @@ class _TopicCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF12122A), Color(0xFF1A1A3E)],
+          gradient: LinearGradient(
+            colors: [context.bgCard, context.bgSurface],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -255,15 +256,15 @@ class _LessonListScreenState extends State<LessonListScreen> {
     final progress = total > 0 ? done / total : 0.0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A1F),
+      backgroundColor: context.bgPrimary,
       body: CustomScrollView(
         slivers: [
           // Colourful header
           SliverAppBar(
             expandedHeight: 180,
             pinned: true,
-            backgroundColor: const Color(0xFF0A0A1F),
-            iconTheme: const IconThemeData(color: Colors.white),
+            backgroundColor: context.bgPrimary,
+            iconTheme: IconThemeData(color: context.textPrimary),
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
@@ -366,7 +367,7 @@ class _LessonListScreenState extends State<LessonListScreen> {
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Text('Coming soon',
-              style: GoogleFonts.outfit(color: Colors.white24, fontSize: 13)),
+              style: GoogleFonts.outfit(color: context.textDisabled, fontSize: 13)),
           )
         else
           ...filtered.asMap().entries.map((e) {
@@ -439,7 +440,7 @@ class _LessonTileState extends State<_LessonTile> {
         child: Container(
           margin: const EdgeInsets.only(bottom: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF12122A),
+            color: context.bgCard,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isCompleted
@@ -498,7 +499,7 @@ class _LessonTileState extends State<_LessonTile> {
                     Text(lesson.title,
                       style: GoogleFonts.outfit(
                         fontSize: 14, fontWeight: FontWeight.w700,
-                        color: isLocked ? Colors.white54 : Colors.white)),
+                        color: isLocked ? context.textSecondary : context.textPrimary)),
                     const SizedBox(height: 4),
                     Row(children: [
                       const Icon(Icons.bolt, color: Color(0xFFFFD700), size: 13),
@@ -543,7 +544,7 @@ class _LessonTileState extends State<_LessonTile> {
               padding: const EdgeInsets.only(right: 14),
               child: Icon(
                 isLocked ? Icons.lock_rounded : Icons.chevron_right_rounded,
-                color: isLocked ? Colors.white24 : gradient.first,
+                color: isLocked ? context.textDisabled : gradient.first,
                 size: 20,
               ),
             ),
@@ -628,13 +629,13 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
         [const Color(0xFF4B8BBE), const Color(0xFF6C5CE7)];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A1F),
+      backgroundColor: context.bgPrimary,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0A1F),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: context.bgPrimary,
+        iconTheme: IconThemeData(color: context.textPrimary),
         title: Text(widget.lesson.title,
           style: GoogleFonts.outfit(
-            fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white)),
+            fontSize: 16, fontWeight: FontWeight.w700, color: context.textPrimary)),
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 16),
@@ -658,7 +659,7 @@ class _LessonContentScreenState extends State<LessonContentScreen> {
           child: LinearPercentIndicator(
             percent: _scrollProgress,
             lineHeight: 4,
-            backgroundColor: Colors.white12,
+            backgroundColor: context.borderMid,
             linearGradient: LinearGradient(colors: gradColors),
             padding: EdgeInsets.zero,
           ),
@@ -704,9 +705,9 @@ class _BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-      decoration: const BoxDecoration(
-        color: Color(0xFF0A0A1F),
-        border: Border(top: BorderSide(color: Colors.white10)),
+      decoration: BoxDecoration(
+        color: context.bgPrimary,
+        border: Border(top: BorderSide(color: context.borderMid)),
       ),
       child: canStart
           ? Container(
@@ -755,8 +756,8 @@ class _BottomBar extends StatelessWidget {
                   'Keep reading to unlock quiz (${(scrollProgress * 100).toInt()}%)',
                   style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600)),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white54,
-                  side: const BorderSide(color: Colors.white12),
+                  foregroundColor: context.textSecondary,
+                  side: BorderSide(color: context.borderMid),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16)),
                 ),
@@ -871,20 +872,20 @@ class _TextBlock extends StatelessWidget {
         if (hasBold) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 4),
-            child: _buildRichText(line),
+            child: _buildRichText(context, line),
           );
         }
         return Padding(
           padding: const EdgeInsets.only(bottom: 4),
           child: Text(line,
             style: GoogleFonts.outfit(
-              fontSize: 15, color: Colors.white.withOpacity(0.85), height: 1.7)),
+              fontSize: 15, color: context.textPrimary.withOpacity(0.85), height: 1.7)),
         );
       }).toList(),
     );
   }
 
-  Widget _buildRichText(String line) {
+  Widget _buildRichText(BuildContext context, String line) {
     final spans = <TextSpan>[];
     final parts = line.split('**');
     for (int i = 0; i < parts.length; i++) {
@@ -899,7 +900,7 @@ class _TextBlock extends StatelessWidget {
         spans.add(TextSpan(
           text: parts[i],
           style: GoogleFonts.outfit(
-            fontSize: 15, color: Colors.white.withOpacity(0.85), height: 1.7),
+            fontSize: 15, color: context.textPrimary.withOpacity(0.85), height: 1.7),
         ));
       }
     }

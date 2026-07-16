@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../services/analytics_service.dart';
+import '../../theme/app_theme.dart';
 
 const _questions = [
   _TestQ(
@@ -143,21 +144,21 @@ class _PrePostTestScreenState extends State<PrePostTestScreen> {
     final q = _questions[_currentIndex];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: context.bgPrimary,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: context.bgPrimary,
+        iconTheme: IconThemeData(color: context.textPrimary),
         title: Text(
           widget.isPostTest ? 'Post-Test' : 'Pre-Test',
           style: GoogleFonts.outfit(
-            fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white),
+            fontSize: 18, fontWeight: FontWeight.w700, color: context.textPrimary),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
           child: LinearProgressIndicator(
             value: (_currentIndex + 1) / _questions.length,
             minHeight: 4,
-            backgroundColor: Colors.white12,
+            backgroundColor: context.borderMid,
             valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFC9A84C)),
           ),
         ),
@@ -180,15 +181,15 @@ class _PrePostTestScreenState extends State<PrePostTestScreen> {
                 Text(q.q,
                   style: GoogleFonts.outfit(
                     fontSize: 17, fontWeight: FontWeight.w700,
-                    color: Colors.white, height: 1.4),
+                    color: context.textPrimary, height: 1.4),
                 ),
                 const SizedBox(height: 24),
                 ...q.opts.asMap().entries.map((e) {
                   final i = e.key;
                   final text = e.value;
-                  Color border = Colors.white12;
-                  Color bg = const Color(0xFF1A1A2E);
-                  Color tc = Colors.white70;
+                  Color border = context.borderMid;
+                  Color bg = context.bgSurface;
+                  Color tc = context.textSecondary;
 
                   if (_answered) {
                     if (i == q.correct) {
@@ -271,7 +272,7 @@ class _PrePostTestScreenState extends State<PrePostTestScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _selected != null
                           ? const Color(0xFF4F8EF7)
-                          : const Color(0xFF1A1A2E),
+                          : context.bgSurface,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
@@ -303,7 +304,7 @@ class _ResultView extends StatelessWidget {
             : Colors.redAccent;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: context.bgPrimary,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -327,7 +328,7 @@ class _ResultView extends StatelessWidget {
                       ),
                       Text('${(pct * 100).toInt()}%',
                         style: GoogleFonts.outfit(
-                          fontSize: 14, color: Colors.white54),
+                          fontSize: 14, color: context.textSecondary),
                       ),
                     ],
                   ),
@@ -335,13 +336,13 @@ class _ResultView extends StatelessWidget {
                 const SizedBox(height: 24),
                 Text('Assessment Complete',
                   style: GoogleFonts.outfit(
-                    fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white),
+                    fontSize: 24, fontWeight: FontWeight.w800, color: context.textPrimary),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Your result has been saved for evaluation.\nThank you for participating.',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(fontSize: 14, color: Colors.white38),
+                  style: GoogleFonts.outfit(fontSize: 14, color: context.textHint),
                 ),
                 const SizedBox(height: 36),
                 SizedBox(

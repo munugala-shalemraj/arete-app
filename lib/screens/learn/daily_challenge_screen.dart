@@ -123,23 +123,23 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A1F),
+      backgroundColor: context.bgPrimary,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0A1F),
+        backgroundColor: context.bgPrimary,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
+          icon: Icon(Icons.close, color: context.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text('Daily Challenge',
           style: GoogleFonts.outfit(
-            fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
+            fontSize: 20, fontWeight: FontWeight.w700, color: context.textPrimary)),
         actions: [
           if (!_loading && !_alreadyDone && !_finished)
             Padding(
               padding: const EdgeInsets.only(right: 16),
               child: Center(child: Text('${_current + 1}/${_questions.length}',
-                style: GoogleFonts.outfit(fontSize: 13, color: Colors.white38))),
+                style: GoogleFonts.outfit(fontSize: 13, color: context.textHint))),
             ),
         ],
       ),
@@ -169,11 +169,11 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
         Text("Today's challenge done!",
           textAlign: TextAlign.center,
           style: GoogleFonts.outfit(
-            fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
+            fontSize: 22, fontWeight: FontWeight.w700, color: context.textPrimary)),
         const SizedBox(height: 8),
         Text('Come back tomorrow for a fresh set of questions.',
           textAlign: TextAlign.center,
-          style: GoogleFonts.outfit(fontSize: 14, color: Colors.white38)),
+          style: GoogleFonts.outfit(fontSize: 14, color: context.textHint)),
         const SizedBox(height: 36),
         ElevatedButton(
           onPressed: () => Navigator.of(context).pop(),
@@ -203,7 +203,7 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Text('Challenge Complete!',
             style: GoogleFonts.outfit(
-              fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white)),
+              fontSize: 26, fontWeight: FontWeight.w800, color: context.textPrimary)),
           const SizedBox(height: 28),
           Container(
             width: 130, height: 130,
@@ -217,7 +217,7 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
                 style: GoogleFonts.outfit(
                   fontSize: 34, fontWeight: FontWeight.w900, color: color)),
               Text('$_score / ${_questions.length} correct',
-                style: GoogleFonts.outfit(fontSize: 12, color: Colors.white38)),
+                style: GoogleFonts.outfit(fontSize: 12, color: context.textHint)),
             ]),
           ),
           const SizedBox(height: 24),
@@ -281,7 +281,7 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: timerFraction,
-                backgroundColor: Colors.white12,
+                backgroundColor: context.borderMid,
                 valueColor: AlwaysStoppedAnimation(timerColor),
                 minHeight: 6,
               ),
@@ -298,7 +298,7 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFF12122A),
+            color: context.bgCard,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: const Color(0xFF4B8BBE).withOpacity(0.25)),
@@ -306,7 +306,7 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
           child: Text(q.questionText,
             style: GoogleFonts.outfit(
               fontSize: 16, fontWeight: FontWeight.w600,
-              color: Colors.white, height: 1.5)),
+              color: context.textPrimary, height: 1.5)),
         ),
         const SizedBox(height: 16),
         // Options
@@ -316,10 +316,10 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (_, i) {
               final key = _optionKeys[i];
-              Color borderColor = Colors.white12;
-              Color bgColor = const Color(0xFF12122A);
+              Color borderColor = context.borderMid;
+              Color bgColor = context.bgCard;
               IconData? trailingIcon;
-              Color iconColor = Colors.white24;
+              Color iconColor = context.textDisabled;
 
               if (_checked) {
                 if (key == q.correctOption.toLowerCase()) {
@@ -354,7 +354,7 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
                   child: Row(children: [
                     Expanded(child: Text(opts[i],
                       style: GoogleFonts.outfit(
-                        fontSize: 14, color: Colors.white))),
+                        fontSize: 14, color: context.textPrimary))),
                     if (trailingIcon != null)
                       Icon(trailingIcon, color: iconColor, size: 18),
                   ]),
@@ -370,9 +370,9 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
             onPressed: (!_checked && _selected != null) ? _check : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFFD700),
-              disabledBackgroundColor: Colors.white.withOpacity(0.06),
+              disabledBackgroundColor: context.borderSubtle,
               foregroundColor: Colors.black,
-              disabledForegroundColor: Colors.white24,
+              disabledForegroundColor: context.textDisabled,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14)),
               padding: const EdgeInsets.symmetric(vertical: 16),
