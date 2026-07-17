@@ -70,12 +70,18 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _setLoading();
     try {
-      await _authService.signUp(
+      final response = await _authService.signUp(
         email: email,
         password: password,
         username: username,
         displayName: displayName,
       );
+      // Email confirmation is disabled — session is available immediately
+      if (response.session != null) {
+        _user = response.user;
+        _status = AuthStatus.authenticated;
+        notifyListeners();
+      }
       return true;
     } on AuthException catch (e) {
       _errorMessage = e.message;
