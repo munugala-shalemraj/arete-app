@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 
-enum AuthStatus { loading, authenticated, unauthenticated }
+enum AuthStatus { loading, authenticated, unauthenticated, passwordRecovery }
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -15,6 +15,7 @@ class AuthProvider extends ChangeNotifier {
   User? get user => _user;
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _status == AuthStatus.authenticated;
+  bool get isPasswordRecovery => _status == AuthStatus.passwordRecovery;
 
   AuthProvider() {
     // Delay by one microtask to ensure Supabase is fully settled on web
@@ -31,9 +32,13 @@ class AuthProvider extends ChangeNotifier {
 
       _authService.authStateChanges.listen((event) {
         _user = event.session?.user;
-        _status = _user != null
-            ? AuthStatus.authenticated
-            : AuthStatus.unauthenticated;
+        if (event.event == AuthChangeEvent.passwordRecovery) {
+          _status = AuthStatus.passwordRecovery;
+        } else {
+          _status = _user != null
+              ? AuthStatus.authenticated
+              : AuthStatus.unauthenticated;
+        }
         _errorMessage = null;
         notifyListeners();
       });

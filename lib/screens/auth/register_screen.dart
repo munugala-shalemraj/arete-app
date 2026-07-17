@@ -29,6 +29,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  String? _validatePassword(String? v) {
+    if (v == null || v.isEmpty) return 'Enter a password';
+    if (v.length < 8) return 'Minimum 8 characters';
+    if (!v.contains(RegExp(r'[0-9]'))) return 'Must contain at least 1 number';
+    if (!v.contains(RegExp(r'[!@#$%^&*()\-_=+\[\]{};:,.<>?/\\|`~@]')))
+      return 'Must contain at least 1 special character';
+    return null;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
@@ -154,8 +163,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           onPressed: () =>
                               setState(() => _obscurePassword = !_obscurePassword),
                         ),
-                        validator: (v) => v != null && v.length >= 6
-                            ? null : 'Minimum 6 characters',
+                        validator: _validatePassword,
                       ),
                       const SizedBox(height: 32),
                       Container(
