@@ -19,6 +19,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _submitting = false;
   bool _emailSent = false;
+  bool _passwordValid = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(_onPasswordChanged);
+  }
+
+  void _onPasswordChanged() {
+    final v = _passwordController.text;
+    final valid = v.length >= 8 &&
+        v.contains(RegExp(r'[0-9]')) &&
+        v.contains(RegExp(r'[!@#$%^&*()\-_=+\[\]{};:,.<>?/\\|`~@]'));
+    if (valid != _passwordValid) setState(() => _passwordValid = valid);
+  }
 
   @override
   void dispose() {
@@ -53,8 +68,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
     setState(() => _submitting = false);
     if (success) {
-      if (!mounted) return;
-      context.go('/home');
+      // If session is immediately available, go home; otherwise show email-sent screen
+      if (auth.isAuthenticated) {
+        context.go('/home');
+      } else {
+        setState(() => _emailSent = true);
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -84,7 +103,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Back button
                 GestureDetector(
                   onTap: () => context.go('/login'),
                   child: Container(
@@ -99,7 +117,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 28),
-                // Title
                 Text('Join Arete 🚀',
                   style: GoogleFonts.outfit(
                     fontSize: 30, fontWeight: FontWeight.w800, color: Colors.white)),
@@ -107,7 +124,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Text('Start your data science adventure',
                   style: GoogleFonts.outfit(fontSize: 15, color: Colors.white54)),
                 const SizedBox(height: 8),
-                // Perks row
                 Row(children: [
                   _PerkChip('🏆 XP System'),
                   const SizedBox(width: 8),
@@ -149,22 +165,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         accentColor: const Color(0xFF9B59B6),
                       ),
                       const SizedBox(height: 16),
-                      _GradientTextField(
+                      // Password field with live validity indicator
+                      _PasswordTextField(
                         controller: _passwordController,
-                        label: 'Password',
-                        hint: '••••••••',
-                        icon: Icons.lock_outline,
-                        accentColor: const Color(0xFFFF6B35),
-                        obscureText: _obscurePassword,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                            color: Colors.white38, size: 20),
-                          onPressed: () =>
-                              setState(() => _obscurePassword = !_obscurePassword),
-                        ),
+                        obscurePassword: _obscurePassword,
+                        isValid: _passwordValid,
+                        onToggleObscure: () =>
+                            setState(() => _obscurePassword = !_obscurePassword),
                         validator: _validatePassword,
                       ),
+                      if (!_passwordValid && _passwordController.text.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: _PasswordHints(value: _passwordController.text),
+                        ),
                       const SizedBox(height: 32),
                       Container(
                         width: double.infinity,
@@ -232,6 +246,164 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+// Password field that turns green border + shows checkmark when valid
+class _PasswordTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final bool obscurePassword;
+  final bool isValid;
+  final VoidCallback onToggleObscure;
+  final String? Function(String?)? validator;
+
+  const _PasswordTextField({
+    required this.controller,
+    required this.obscurePassword,
+    required this.isValid,
+    required this.onToggleObscure,
+    this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = isValid
+        ? const Color(0xFF00D4AA)
+        : const Color(0xFFFF6B35).withOpacity(0.2);
+    final activeBorderColor = isValid
+        ? const Color(0xFF00D4AA)
+        : const Color(0xFFFF6B35);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Icon(Icons.lock_outline,
+              color: isValid ? const Color(0xFF00D4AA) : const Color(0xFFFF6B35),
+              size: 15),
+          const SizedBox(width: 6),
+          Text('Password',
+            style: GoogleFonts.outfit(
+              fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white70)),
+          if (isValid) ...[
+            const SizedBox(width: 6),
+            const Icon(Icons.check_circle, color: Color(0xFF00D4AA), size: 14),
+            const SizedBox(width: 4),
+            Text('Strong', style: GoogleFonts.outfit(
+              fontSize: 11, color: Color(0xFF00D4AA), fontWeight: FontWeight.w600)),
+          ],
+        ]),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          obscureText: obscurePassword,
+          validator: validator,
+          style: GoogleFonts.outfit(color: Colors.white, fontSize: 15),
+          decoration: InputDecoration(
+            hintText: '••••••••',
+            hintStyle: GoogleFonts.outfit(color: Colors.white24),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isValid)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 4),
+                    child: Icon(Icons.check_circle, color: Color(0xFF00D4AA), size: 18),
+                  ),
+                IconButton(
+                  icon: Icon(
+                    obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.white38, size: 20),
+                  onPressed: onToggleObscure,
+                ),
+              ],
+            ),
+            filled: true,
+            fillColor: isValid
+                ? const Color(0xFF00D4AA).withOpacity(0.06)
+                : const Color(0xFF12122A),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: borderColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(
+                color: isValid ? const Color(0xFF00D4AA) : const Color(0xFFFF6B35).withOpacity(0.2),
+                width: isValid ? 1.5 : 1.0,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: activeBorderColor, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Colors.redAccent),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Colors.redAccent),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PasswordHints extends StatelessWidget {
+  final String value;
+  const _PasswordHints({required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final has8 = value.length >= 8;
+    final hasNum = value.contains(RegExp(r'[0-9]'));
+    final hasSpecial = value.contains(RegExp(r'[!@#$%^&*()\-_=+\[\]{};:,.<>?/\\|`~@]'));
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Column(
+        children: [
+          _HintRow('At least 8 characters', has8),
+          const SizedBox(height: 4),
+          _HintRow('At least 1 number (0-9)', hasNum),
+          const SizedBox(height: 4),
+          _HintRow('At least 1 special character (!@#\$...)', hasSpecial),
+        ],
+      ),
+    );
+  }
+}
+
+class _HintRow extends StatelessWidget {
+  final String text;
+  final bool met;
+  const _HintRow(this.text, this.met);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(
+          met ? Icons.check_circle : Icons.radio_button_unchecked,
+          size: 14,
+          color: met ? const Color(0xFF00D4AA) : Colors.white30,
+        ),
+        const SizedBox(width: 8),
+        Text(text,
+          style: GoogleFonts.outfit(
+            fontSize: 12,
+            color: met ? const Color(0xFF00D4AA) : Colors.white38,
+          )),
+      ],
     );
   }
 }

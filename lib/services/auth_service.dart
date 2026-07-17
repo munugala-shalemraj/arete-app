@@ -37,22 +37,22 @@ class AuthService {
 
     if (response.user != null) {
       final uid = response.user!.id;
-
-      // Create profile row
-      await _client.from('profiles').insert({
-        'id': uid,
-        'username': username,
-        'display_name': displayName ?? username,
-        'xp': 0,
-        'level': 1,
-        'streak_days': 0,
-      });
-
-      // Initialise all 7 skill mastery rows at 0.0
-      final skillRows = _initialSkills
-          .map((s) => {'user_id': uid, 'skill_name': s, 'mastery_score': 0.0})
-          .toList();
-      await _client.from('skill_mastery').insert(skillRows);
+      try {
+        await _client.from('profiles').insert({
+          'id': uid,
+          'username': username,
+          'display_name': displayName ?? username,
+          'xp': 0,
+          'level': 1,
+          'streak_days': 0,
+        });
+        final skillRows = _initialSkills
+            .map((s) => {'user_id': uid, 'skill_name': s, 'mastery_score': 0.0})
+            .toList();
+        await _client.from('skill_mastery').insert(skillRows);
+      } catch (e) {
+        debugPrint('Profile init failed (may already exist): $e');
+      }
     }
 
     // Send welcome email via Resend

@@ -83,8 +83,8 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
       }
       return true;
-    } on AuthException catch (e) {
-      _errorMessage = e.message;
+    } catch (e) {
+      _errorMessage = e is AuthException ? e.message : 'Registration failed. Please try again.';
       _status = AuthStatus.unauthenticated;
       notifyListeners();
       return false;
