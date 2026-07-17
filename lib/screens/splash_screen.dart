@@ -45,7 +45,11 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(seconds: 3));
     if (!mounted) return;
     final auth = context.read<AuthProvider>();
-    if (auth.isAuthenticated) {
+    // Check URL hash for recovery token (Supabase may have processed it by now)
+    final fragment = Uri.base.fragment;
+    if (auth.isPasswordRecovery || fragment.contains('type=recovery')) {
+      context.go('/reset-password');
+    } else if (auth.isAuthenticated) {
       context.go('/home');
     } else {
       context.go('/login');

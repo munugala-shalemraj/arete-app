@@ -26,12 +26,18 @@ final GoRouter appRouter = GoRouter(
       final loc = state.matchedLocation;
       final publicRoutes = ['/', '/login', '/register', '/reset-password'];
 
-      // Password recovery takes priority — always go to reset screen
-      if (auth.isPasswordRecovery && loc != '/reset-password') {
+      // Check URL hash immediately (available before Supabase processes it)
+      final fragment = Uri.base.fragment;
+      final isRecoveryUrl = fragment.contains('type=recovery');
+
+      // Check AuthProvider event (available after Supabase processes it)
+      if ((isRecoveryUrl || auth.isPasswordRecovery) && loc != '/reset-password') {
         return '/reset-password';
       }
 
-      if (!auth.isAuthenticated && !publicRoutes.contains(loc)) return '/login';
+      if (!auth.isAuthenticated && !auth.isPasswordRecovery && !publicRoutes.contains(loc)) {
+        return '/login';
+      }
       if (auth.isAuthenticated && (loc == '/login' || loc == '/register')) return '/home';
       return null;
     } catch (_) {
