@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/lesson.dart';
+import '../theme/app_theme.dart';
 
 class LessonCard extends StatelessWidget {
   final Lesson lesson;
@@ -110,7 +111,7 @@ class LessonCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Colors.white30),
+              Icon(Icons.chevron_right, color: context.textDisabled),
             ],
           ),
         ),

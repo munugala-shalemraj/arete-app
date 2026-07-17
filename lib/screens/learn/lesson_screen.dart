@@ -533,7 +533,7 @@ class _LessonTileState extends State<_LessonTile> {
                       if (isLocked) ...[
                         const SizedBox(width: 8),
                         Text('Locked',
-                          style: GoogleFonts.outfit(fontSize: 10, color: Colors.white30)),
+                          style: GoogleFonts.outfit(fontSize: 10, color: context.textDisabled)),
                       ],
                     ]),
                   ],

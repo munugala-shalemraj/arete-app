@@ -130,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
           border: Border(top: BorderSide(color: context.borderMid)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withOpacity(context.isDark ? 0.4 : 0.08),
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),
@@ -143,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onDestinationSelected: (i) => setState(() => _selectedIndex = i),
           labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
           destinations: List.generate(5, (i) => NavigationDestination(
-            icon: Icon(_icons[i], color: Colors.white30),
+            icon: Icon(_icons[i], color: context.textDisabled),
             selectedIcon: Icon(_selectedIcons[i], color: const Color(0xFFFFD700)),
             label: _labels[i],
           )),
@@ -468,7 +468,7 @@ class _NextLessonCard extends StatelessWidget {
               ]),
             ],
           )),
-          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white30),
+          Icon(Icons.arrow_forward_ios, size: 16, color: context.textDisabled),
         ]),
       ),
     );
