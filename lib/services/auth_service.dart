@@ -25,15 +25,30 @@ class AuthService {
     required String username,
     String? displayName,
   }) async {
-    final response = await _client.auth.signUp(
-      email: email,
-      password: password,
-      emailRedirectTo: 'https://munugala-shalemraj.github.io/arete-app/',
-      data: {
-        'username': username,
-        'display_name': displayName ?? username,
-      },
-    );
+    AuthResponse response;
+    try {
+      response = await _client.auth.signUp(
+        email: email,
+        password: password,
+        data: {
+          'username': username,
+          'display_name': displayName ?? username,
+        },
+      );
+    } on AuthException catch (e) {
+      // Supabase SMTP fails for non-owner addresses — account is still created.
+      // Sign in directly so the session is available immediately.
+      if (e.message.toLowerCase().contains('confirmation email') ||
+          e.message.toLowerCase().contains('sending') ||
+          e.code == 'unexpected_failure') {
+        response = await _client.auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
+      } else {
+        rethrow;
+      }
+    }
 
     if (response.user != null) {
       final uid = response.user!.id;
@@ -55,7 +70,7 @@ class AuthService {
       }
     }
 
-    // Send welcome email via Resend
+    // Send welcome email via Resend API (bypasses Supabase SMTP entirely)
     if (response.user != null) {
       _sendWelcomeEmail(
         email: email,
