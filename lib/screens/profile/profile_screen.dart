@@ -34,6 +34,119 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() { _allBadges = badges; _badgesLoaded = true; });
   }
 
+  void _showChangePassword(BuildContext context, AuthProvider auth) {
+    final emailCtrl = TextEditingController(
+      text: auth.user?.email ?? '',
+    );
+    bool sent = false;
+    bool sending = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: Color(0xFF12122A),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text('Change Password',
+                  style: GoogleFonts.outfit(
+                    fontSize: 18, fontWeight: FontWeight.w700,
+                    color: Colors.white)),
+                const SizedBox(height: 6),
+                if (!sent) ...[
+                  Text('A password reset link will be sent to your email.',
+                    style: GoogleFonts.outfit(fontSize: 13, color: Colors.white54)),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: emailCtrl,
+                    readOnly: true,
+                    style: GoogleFonts.outfit(color: Colors.white70),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.06),
+                      prefixIcon: const Icon(Icons.email_outlined,
+                          color: Color(0xFF00D4AA), size: 18),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: sending ? null : () async {
+                        setS(() => sending = true);
+                        await auth.resetPassword(emailCtrl.text.trim());
+                        setS(() { sending = false; sent = true; });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00D4AA),
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: sending
+                          ? const SizedBox(width: 18, height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.black))
+                          : Text('Send Reset Link',
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.w700, fontSize: 14)),
+                    ),
+                  ),
+                ] else ...[
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    const Icon(Icons.check_circle,
+                        color: Color(0xFF00D4AA), size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Reset link sent to ${emailCtrl.text}. Check your inbox.',
+                        style: GoogleFonts.outfit(
+                          color: const Color(0xFF00D4AA), fontSize: 14)),
+                    ),
+                  ]),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text('Close',
+                        style: GoogleFonts.outfit(color: Colors.white54)),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProvider = context.watch<UserProvider>();
@@ -278,6 +391,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _ThemeToggleTile(),
 
           const SizedBox(height: 16),
+
+          // Change password
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _showChangePassword(context, auth),
+              icon: const Icon(Icons.lock_reset, size: 18),
+              label: Text('Change Password',
+                style: GoogleFonts.outfit(fontSize: 14)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF00D4AA),
+                side: const BorderSide(color: Color(0xFF00D4AA), width: 1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
 
           // Sign out
           SizedBox(
