@@ -172,12 +172,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       _GradientTextField(
                         controller: _emailController,
                         label: 'Email',
-                        hint: 'you@university.ac.uk',
+                        hint: 'you@newcastle.ac.uk',
                         icon: Icons.email_outlined,
                         accentColor: const Color(0xFF4B8BBE),
                         keyboardType: TextInputType.emailAddress,
-                        validator: (v) => v != null && v.contains('@')
-                            ? null : 'Enter a valid email',
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Enter your university email';
+                          if (!v.endsWith('@newcastle.ac.uk') && !v.endsWith('.newcastle.ac.uk')) {
+                            return 'Must be a Newcastle University email (@newcastle.ac.uk)';
+                          }
+                          return null;
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Row(children: [
+                          const Icon(Icons.info_outline,
+                              size: 13, color: Color(0xFF4B8BBE)),
+                          const SizedBox(width: 6),
+                          Text('Only Newcastle University emails are accepted',
+                            style: GoogleFonts.outfit(
+                              fontSize: 11, color: const Color(0xFF4B8BBE))),
+                        ]),
                       ),
                       const SizedBox(height: 16),
                       _GradientTextField(
