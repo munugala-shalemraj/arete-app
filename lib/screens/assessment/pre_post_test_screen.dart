@@ -130,7 +130,7 @@ class _PrePostTestScreenState extends State<PrePostTestScreen> {
     await AnalyticsService().submitFeedback(
       userId: userId,
       susScore: null,
-      imiScore: widget.isPostTest ? score : null,
+      imiScore: score,
       openFeedback: widget.isPostTest
           ? 'post_test_score:$score'
           : 'pre_test_score:$score',
