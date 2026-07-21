@@ -17,7 +17,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _usernameController = TextEditingController();
   final _displayNameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _obscureConfirm = true;
   bool _submitting = false;
   bool _emailSent = false;
   bool _passwordValid = false;
@@ -51,6 +53,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _usernameController.dispose();
     _displayNameController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -232,6 +235,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           padding: const EdgeInsets.only(top: 8),
                           child: _PasswordHints(value: _passwordController.text),
                         ),
+                      const SizedBox(height: 16),
+                      // Confirm password field
+                      _ConfirmPasswordField(
+                        controller: _confirmPasswordController,
+                        passwordController: _passwordController,
+                        obscure: _obscureConfirm,
+                        onToggle: () =>
+                            setState(() => _obscureConfirm = !_obscureConfirm),
+                      ),
                       const SizedBox(height: 32),
                       Container(
                         width: double.infinity,
@@ -456,6 +468,138 @@ class _HintRow extends StatelessWidget {
             fontSize: 12,
             color: met ? const Color(0xFF00D4AA) : Colors.white38,
           )),
+      ],
+    );
+  }
+}
+
+class _ConfirmPasswordField extends StatefulWidget {
+  final TextEditingController controller;
+  final TextEditingController passwordController;
+  final bool obscure;
+  final VoidCallback onToggle;
+  const _ConfirmPasswordField({
+    required this.controller,
+    required this.passwordController,
+    required this.obscure,
+    required this.onToggle,
+  });
+
+  @override
+  State<_ConfirmPasswordField> createState() => _ConfirmPasswordFieldState();
+}
+
+class _ConfirmPasswordFieldState extends State<_ConfirmPasswordField> {
+  bool get _matches =>
+      widget.controller.text.isNotEmpty &&
+      widget.controller.text == widget.passwordController.text;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(() => setState(() {}));
+    widget.passwordController.addListener(() => setState(() {}));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = widget.controller.text.isEmpty
+        ? const Color(0xFF00D4AA).withOpacity(0.2)
+        : _matches
+            ? const Color(0xFF00D4AA)
+            : Colors.redAccent;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          Icon(Icons.lock_outline,
+              color: widget.controller.text.isEmpty
+                  ? const Color(0xFF00D4AA)
+                  : _matches ? const Color(0xFF00D4AA) : Colors.redAccent,
+              size: 15),
+          const SizedBox(width: 6),
+          Text('Confirm Password',
+            style: GoogleFonts.outfit(
+              fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white70)),
+          if (_matches) ...[
+            const SizedBox(width: 6),
+            const Icon(Icons.check_circle, color: Color(0xFF00D4AA), size: 14),
+            const SizedBox(width: 4),
+            Text('Passwords match',
+              style: GoogleFonts.outfit(
+                fontSize: 11, color: Color(0xFF00D4AA),
+                fontWeight: FontWeight.w600)),
+          ] else if (widget.controller.text.isNotEmpty) ...[
+            const SizedBox(width: 6),
+            const Icon(Icons.cancel, color: Colors.redAccent, size: 14),
+            const SizedBox(width: 4),
+            Text('Does not match',
+              style: GoogleFonts.outfit(
+                fontSize: 11, color: Colors.redAccent,
+                fontWeight: FontWeight.w600)),
+          ],
+        ]),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: widget.controller,
+          obscureText: widget.obscure,
+          style: GoogleFonts.outfit(color: Colors.white, fontSize: 15),
+          validator: (v) {
+            if (v == null || v.isEmpty) return 'Please confirm your password';
+            if (v != widget.passwordController.text) return 'Passwords do not match';
+            return null;
+          },
+          decoration: InputDecoration(
+            hintText: '••••••••',
+            hintStyle: GoogleFonts.outfit(color: Colors.white24),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.controller.text.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Icon(
+                      _matches ? Icons.check_circle : Icons.cancel,
+                      color: _matches ? const Color(0xFF00D4AA) : Colors.redAccent,
+                      size: 18),
+                  ),
+                IconButton(
+                  icon: Icon(
+                    widget.obscure ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.white38, size: 20),
+                  onPressed: widget.onToggle,
+                ),
+              ],
+            ),
+            filled: true,
+            fillColor: widget.controller.text.isEmpty
+                ? const Color(0xFF12122A)
+                : _matches
+                    ? const Color(0xFF00D4AA).withOpacity(0.06)
+                    : Colors.redAccent.withOpacity(0.06),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: borderColor, width: _matches ? 1.5 : 1.0),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: borderColor, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Colors.redAccent),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Colors.redAccent),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: borderColor),
+            ),
+          ),
+        ),
       ],
     );
   }
