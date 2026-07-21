@@ -72,9 +72,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     // Check uniqueness before creating the auth user
     final username = _usernameController.text.trim();
-    final displayName = _displayNameController.text.trim().isNotEmpty
-        ? _displayNameController.text.trim()
-        : username;
+    final displayName = _displayNameController.text.trim();
 
     final usernameErr = await _authService.checkUsernameExists(username);
     final displayNameErr = await _authService.checkDisplayNameExists(displayName);
@@ -93,10 +91,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final success = await auth.signUp(
       email: _emailController.text.trim(),
       password: _passwordController.text,
-      username: _usernameController.text.trim(),
-      displayName: _displayNameController.text.trim().isNotEmpty
-          ? _displayNameController.text.trim()
-          : null,
+      username: username,
+      displayName: displayName,
     );
     if (!mounted) return;
     setState(() => _submitting = false);
@@ -211,11 +207,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 16),
                       _GradientTextField(
                         controller: _displayNameController,
-                        label: 'Display Name (optional)',
+                        label: 'Display Name',
                         hint: 'Your Name',
                         icon: Icons.badge_outlined,
                         accentColor: const Color(0xFF9B59B6),
-                        validator: (_) => _displayNameError,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return 'Enter a display name';
+                          if (_displayNameError != null) return _displayNameError;
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
                       // Password field with live validity indicator
