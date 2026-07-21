@@ -222,7 +222,12 @@ class _HomeTabState extends State<_HomeTab> {
       final attempts = await _quizService.fetchAllAttempts(userId);
 
       // Adaptive recommendation: find weakest skill → match to uncompleted lesson
-      final skills = context.read<UserProvider>().skills;
+      // Reload profile to ensure skills are fresh
+      final userProv = context.read<UserProvider>();
+      if (userProv.skills.isEmpty && userProv.profile != null) {
+        await userProv.loadProfile(userProv.profile!.id);
+      }
+      final skills = userProv.skills;
       Lesson? recommended;
       String? recommendedSkill;
       if (skills.isNotEmpty) {
