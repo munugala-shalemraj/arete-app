@@ -34,6 +34,102 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() { _allBadges = badges; _badgesLoaded = true; });
   }
 
+  void _showEditDisplayName(BuildContext context, UserProvider userProvider, String current) {
+    final ctrl = TextEditingController(text: current);
+    String? errorMsg;
+    bool saving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: Color(0xFF12122A),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2)),
+                )),
+                const SizedBox(height: 20),
+                Text('Edit Display Name',
+                  style: GoogleFonts.outfit(
+                    fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  style: GoogleFonts.outfit(color: Colors.white),
+                  onChanged: (_) { if (errorMsg != null) setS(() => errorMsg = null); },
+                  decoration: InputDecoration(
+                    hintText: 'Your display name',
+                    hintStyle: GoogleFonts.outfit(color: Colors.white30),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.06),
+                    prefixIcon: const Icon(Icons.badge_outlined,
+                        color: Color(0xFF9B59B6), size: 18),
+                    errorText: errorMsg,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF9B59B6))),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: const Color(0xFF9B59B6).withOpacity(0.3))),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Color(0xFF9B59B6), width: 1.5)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: saving ? null : () async {
+                      final name = ctrl.text.trim();
+                      if (name.isEmpty) { setS(() => errorMsg = 'Display name cannot be empty'); return; }
+                      if (name == current) { Navigator.pop(ctx); return; }
+                      setS(() => saving = true);
+                      final err = await userProvider.updateDisplayName(name);
+                      if (err != null) {
+                        setS(() { saving = false; errorMsg = err; });
+                      } else {
+                        if (ctx.mounted) Navigator.pop(ctx);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF9B59B6),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: saving
+                        ? const SizedBox(width: 18, height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : Text('Save Changes',
+                            style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 14)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showChangePassword(BuildContext context, AuthProvider auth) {
     final emailCtrl = TextEditingController(
       text: auth.user?.email ?? '',
@@ -271,6 +367,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _StatCard(label: 'Badges', value: '${earnedBadges.length}',
               icon: Icons.emoji_events, color: const Color(0xFF4CAF50)),
           ]),
+
+          const SizedBox(height: 20),
+
+          // Personal details card
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: context.bgSurface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: context.borderSubtle),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Personal Details',
+                      style: GoogleFonts.outfit(
+                        fontSize: 15, fontWeight: FontWeight.w700,
+                        color: context.textPrimary)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _DetailRow(
+                  icon: Icons.email_outlined,
+                  label: 'Email',
+                  value: auth.user?.email ?? '—',
+                  color: const Color(0xFF4B8BBE),
+                ),
+                const SizedBox(height: 12),
+                _DetailRow(
+                  icon: Icons.alternate_email,
+                  label: 'Username',
+                  value: '@${profile.username}',
+                  color: const Color(0xFF00D4AA),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DetailRow(
+                        icon: Icons.badge_outlined,
+                        label: 'Display Name',
+                        value: profile.displayName ?? profile.username,
+                        color: const Color(0xFF9B59B6),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => _showEditDisplayName(
+                        context, userProvider,
+                        profile.displayName ?? profile.username),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF9B59B6).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color(0xFF9B59B6).withOpacity(0.3)),
+                        ),
+                        child: Row(children: [
+                          const Icon(Icons.edit, color: Color(0xFF9B59B6), size: 13),
+                          const SizedBox(width: 4),
+                          Text('Edit',
+                            style: GoogleFonts.outfit(
+                              fontSize: 12, color: const Color(0xFF9B59B6),
+                              fontWeight: FontWeight.w600)),
+                        ]),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
 
           const SizedBox(height: 24),
 
@@ -537,6 +708,38 @@ class _BadgeGridItem extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  const _DetailRow({required this.icon, required this.label,
+      required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      Container(
+        width: 32, height: 32,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color, size: 16),
+      ),
+      const SizedBox(width: 12),
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label,
+          style: GoogleFonts.outfit(fontSize: 11, color: context.textHint)),
+        Text(value,
+          style: GoogleFonts.outfit(
+            fontSize: 14, fontWeight: FontWeight.w600,
+            color: context.textPrimary)),
+      ]),
+    ]);
   }
 }
 

@@ -117,6 +117,25 @@ class UserProvider extends ChangeNotifier {
     if (_profile != null) await loadProfile(_profile!.id);
   }
 
+  Future<String?> updateDisplayName(String newName) async {
+    if (_profile == null) return 'No profile loaded';
+    // Check uniqueness
+    final existing = await _client
+        .from('profiles')
+        .select('display_name')
+        .eq('display_name', newName)
+        .neq('id', _profile!.id)
+        .maybeSingle();
+    if (existing != null) return 'Display name "$newName" is already taken.';
+    await _client
+        .from('profiles')
+        .update({'display_name': newName})
+        .eq('id', _profile!.id);
+    _profile = _profile!.copyWith(displayName: newName);
+    notifyListeners();
+    return null;
+  }
+
   Future<void> awardXp(int amount) async {
     if (_profile == null) return;
     try {
