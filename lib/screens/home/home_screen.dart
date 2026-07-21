@@ -162,13 +162,13 @@ class _HomeTab extends StatefulWidget {
 
 // Maps each skill name to keywords found in lesson titles
 const _skillLessonKeywords = {
-  'Variables': ['variable'],
-  'Data Types': ['data type', 'type'],
-  'Control Flow': ['control', 'loop', 'condition', 'if'],
-  'Functions': ['function'],
-  'Lists & Dicts': ['list', 'dict', 'collection'],
-  'Pandas': ['pandas', 'dataframe'],
-  'NumPy & Viz': ['numpy', 'visuali', 'matplotlib', 'plot'],
+  'Variables':    ['variables & data types', 'variable'],
+  'Data Types':   ['variables & data types', 'data type'],
+  'Control Flow': ['control flow'],
+  'Functions':    ['functions', 'file i/o', 'module'],
+  'Lists & Dicts':['lists & dictionar', 'lists', 'dictionar'],
+  'Pandas':       ['pandas', 'dataframe', 'data cleaning'],
+  'NumPy & Viz':  ['numpy', 'matplotlib', 'visuali'],
 };
 
 class _HomeTabState extends State<_HomeTab> {
