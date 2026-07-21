@@ -136,6 +136,7 @@ class _StudentModelDashboardState extends State<StudentModelDashboard> {
               onChanged: (skill, pct) => setState(() {
                 _goalSkill = skill; _goalPct = pct; }),
               onSave: () => _saveGoal(skills.map((s) => s.skillName).toList()),
+            skillMasteries: skills,
             ),
 
             const SizedBox(height: 24),
@@ -277,6 +278,7 @@ class _GoalSection extends StatelessWidget {
   final bool saving;
   final void Function(String skill, int pct) onChanged;
   final VoidCallback onSave;
+  final List<SkillMastery> skillMasteries;
 
   const _GoalSection({
     required this.skills,
@@ -286,27 +288,104 @@ class _GoalSection extends StatelessWidget {
     required this.saving,
     required this.onChanged,
     required this.onSave,
+    required this.skillMasteries,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Find current mastery for the selected goal skill
+    final currentSkill = skillMasteries.where(
+      (s) => s.skillName == goalSkill).firstOrNull;
+    final currentPct = currentSkill != null
+        ? (currentSkill.masteryScore * 100).toInt() : 0;
+    final goalMet = currentPct >= goalPct;
+    final progress = goalPct > 0
+        ? (currentPct / goalPct).clamp(0.0, 1.0) : 0.0;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: context.bgSurface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF9B59B6).withOpacity(0.3)),
+          color: goalMet && goalSkill != null
+              ? const Color(0xFF4CAF50).withOpacity(0.4)
+              : const Color(0xFF9B59B6).withOpacity(0.3)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          const Icon(Icons.track_changes, color: Color(0xFF9B59B6), size: 18),
+          Icon(goalMet && goalSkill != null
+              ? Icons.emoji_events : Icons.track_changes,
+            color: goalMet && goalSkill != null
+                ? const Color(0xFF4CAF50) : const Color(0xFF9B59B6),
+            size: 18),
           const SizedBox(width: 8),
           Text('Learning Goal',
             style: GoogleFonts.outfit(
               fontSize: 15, fontWeight: FontWeight.w700, color: context.textPrimary)),
+          if (goalMet && goalSkill != null) ...[
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4CAF50).withOpacity(0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text('Goal Achieved! 🎉',
+                style: GoogleFonts.outfit(
+                  fontSize: 11, color: const Color(0xFF4CAF50),
+                  fontWeight: FontWeight.w700)),
+            ),
+          ],
         ]),
         const SizedBox(height: 12),
+
+        // Goal progress display (when goal is set)
+        if (goalSkill != null && !loading) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF9B59B6).withOpacity(0.06),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Text(goalSkill!,
+                  style: GoogleFonts.outfit(
+                    fontSize: 14, fontWeight: FontWeight.w700,
+                    color: context.textPrimary)),
+                Text('$currentPct% / $goalPct%',
+                  style: GoogleFonts.outfit(
+                    fontSize: 13, fontWeight: FontWeight.w700,
+                    color: goalMet
+                        ? const Color(0xFF4CAF50) : const Color(0xFF9B59B6))),
+              ]),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 8,
+                  backgroundColor: context.borderMid,
+                  valueColor: AlwaysStoppedAnimation(goalMet
+                      ? const Color(0xFF4CAF50) : const Color(0xFF9B59B6)),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(goalMet
+                  ? '✓ You\'ve reached your target mastery for $goalSkill!'
+                  : '${goalPct - currentPct}% more mastery needed to reach your goal',
+                style: GoogleFonts.outfit(
+                  fontSize: 11,
+                  color: goalMet ? const Color(0xFF4CAF50) : context.textHint)),
+            ]),
+          ),
+          const SizedBox(height: 14),
+          Text('Update goal',
+            style: GoogleFonts.outfit(fontSize: 12, color: context.textHint)),
+          const SizedBox(height: 8),
+        ],
+
         if (loading)
           const Center(child: SizedBox(width: 20, height: 20,
             child: CircularProgressIndicator(strokeWidth: 2,
@@ -370,17 +449,11 @@ class _GoalSection extends StatelessWidget {
                   ? const SizedBox(width: 18, height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2, color: Colors.white))
-                  : Text('Save Goal',
+                  : Text(goalSkill == null ? 'Set Goal' : 'Update Goal',
                       style: GoogleFonts.outfit(
                         fontWeight: FontWeight.w700, fontSize: 14)),
             ),
           ),
-          if (goalSkill != null) ...[
-            const SizedBox(height: 8),
-            Text('Goal: reach $goalPct% mastery in $goalSkill',
-              style: GoogleFonts.outfit(
-                fontSize: 12, color: const Color(0xFF9B59B6))),
-          ],
         ],
       ]),
     );

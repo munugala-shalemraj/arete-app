@@ -160,13 +160,27 @@ class _HomeTab extends StatefulWidget {
   State<_HomeTab> createState() => _HomeTabState();
 }
 
+// Maps each skill name to keywords found in lesson titles
+const _skillLessonKeywords = {
+  'Variables': ['variable'],
+  'Data Types': ['data type', 'type'],
+  'Control Flow': ['control', 'loop', 'condition', 'if'],
+  'Functions': ['function'],
+  'Lists & Dicts': ['list', 'dict', 'collection'],
+  'Pandas': ['pandas', 'dataframe'],
+  'NumPy & Viz': ['numpy', 'visuali', 'matplotlib', 'plot'],
+};
+
 class _HomeTabState extends State<_HomeTab> {
   final _lessonService = LessonService();
   final _quizService = QuizService();
 
   Lesson? _nextLesson;
+  Lesson? _recommendedLesson;
+  String? _recommendedSkill;
   int _lessonsCompleted = 0;
   int _quizzesCompleted = 0;
+  List<Lesson> _allLessons = [];
   bool _loading = true;
 
   @override
@@ -183,15 +197,23 @@ class _HomeTabState extends State<_HomeTab> {
       final topics = await _lessonService.fetchTopics();
       if (topics.isEmpty) return;
 
-      final lessons = await _lessonService.fetchLessonsForTopic(topics.first.id);
+      // Collect all lessons across all topics
+      final allLessons = <Lesson>[];
+      for (final topic in topics) {
+        final lessons = await _lessonService.fetchLessonsForTopic(topic.id);
+        allLessons.addAll(lessons);
+      }
+
       int completed = 0;
       Lesson? next;
+      final Set<int> completedIds = {};
 
-      for (final lesson in lessons) {
+      for (final lesson in allLessons) {
         final done = await _quizService.hasCompletedLesson(
           userId: userId, lessonId: lesson.id);
         if (done) {
           completed++;
+          completedIds.add(lesson.id);
         } else if (next == null) {
           next = lesson;
         }
@@ -199,10 +221,34 @@ class _HomeTabState extends State<_HomeTab> {
 
       final attempts = await _quizService.fetchAllAttempts(userId);
 
+      // Adaptive recommendation: find weakest skill → match to uncompleted lesson
+      final skills = context.read<UserProvider>().skills;
+      Lesson? recommended;
+      String? recommendedSkill;
+      if (skills.isNotEmpty) {
+        final sorted = [...skills]
+          ..sort((a, b) => a.masteryScore.compareTo(b.masteryScore));
+        for (final weak in sorted) {
+          final keywords = _skillLessonKeywords[weak.skillName] ?? [];
+          final match = allLessons.where((l) =>
+            !completedIds.contains(l.id) &&
+            keywords.any((kw) => l.title.toLowerCase().contains(kw))
+          ).firstOrNull;
+          if (match != null) {
+            recommended = match;
+            recommendedSkill = weak.skillName;
+            break;
+          }
+        }
+      }
+
       setState(() {
         _lessonsCompleted = completed;
         _nextLesson = next;
         _quizzesCompleted = attempts.length;
+        _allLessons = allLessons;
+        _recommendedLesson = recommended;
+        _recommendedSkill = recommendedSkill;
         _loading = false;
       });
     } catch (_) {
@@ -288,6 +334,18 @@ class _HomeTabState extends State<_HomeTab> {
             _AllDoneCard(),
 
           const SizedBox(height: 28),
+
+          // Adaptive recommendation
+          if (!_loading && _recommendedLesson != null) ...[
+            _AdaptiveRecommendationCard(
+              lesson: _recommendedLesson!,
+              skillName: _recommendedSkill ?? '',
+              onTap: () => context.push(
+                '/lesson/${_recommendedLesson!.id}',
+                extra: _recommendedLesson),
+            ),
+            const SizedBox(height: 28),
+          ],
 
           // Learning path mini-preview
           _LearningPathSection(),
@@ -388,6 +446,102 @@ class _StatChip extends StatelessWidget {
             style: GoogleFonts.outfit(fontSize: 11, color: context.textHint)),
         ]),
       ),
+    );
+  }
+}
+
+class _AdaptiveRecommendationCard extends StatelessWidget {
+  final Lesson lesson;
+  final String skillName;
+  final VoidCallback onTap;
+  const _AdaptiveRecommendationCard({
+    required this.lesson, required this.skillName, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(children: [
+          const Icon(Icons.auto_awesome, color: Color(0xFF00D4AA), size: 16),
+          const SizedBox(width: 6),
+          Text('Adaptive Recommendation',
+            style: GoogleFonts.outfit(
+              fontSize: 17, fontWeight: FontWeight.w700, color: context.textPrimary)),
+        ]),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF00D4AA).withOpacity(0.12),
+                  const Color(0xFF4B8BBE).withOpacity(0.08),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF00D4AA).withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00D4AA).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.flag, color: Color(0xFF00D4AA), size: 12),
+                      const SizedBox(width: 4),
+                      Text('Weak area: $skillName',
+                        style: GoogleFonts.outfit(
+                          fontSize: 11, color: const Color(0xFF00D4AA),
+                          fontWeight: FontWeight.w600)),
+                    ]),
+                  ),
+                  const Spacer(),
+                  const Icon(Icons.arrow_forward_ios,
+                      color: Color(0xFF00D4AA), size: 14),
+                ]),
+                const SizedBox(height: 12),
+                Text('Recommended for you',
+                  style: GoogleFonts.outfit(
+                    fontSize: 11, color: context.textHint)),
+                const SizedBox(height: 4),
+                Text(lesson.title,
+                  style: GoogleFonts.outfit(
+                    fontSize: 16, fontWeight: FontWeight.w700,
+                    color: context.textPrimary)),
+                const SizedBox(height: 8),
+                Text(
+                  'Your skill map shows ${skillName} needs attention. '
+                  'This lesson will help boost your mastery.',
+                  style: GoogleFonts.outfit(
+                    fontSize: 12, color: context.textSecondary, height: 1.5)),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00D4AA),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: Text('Start Lesson →',
+                      style: GoogleFonts.outfit(
+                        fontSize: 13, fontWeight: FontWeight.w700,
+                        color: Colors.black)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
