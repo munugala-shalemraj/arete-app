@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -20,11 +21,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _submitting = false;
   bool _emailSent = false;
   bool _passwordValid = false;
+  String? _usernameError;
+  String? _displayNameError;
+  final _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
     _passwordController.addListener(_onPasswordChanged);
+    _usernameController.addListener(() {
+      if (_usernameError != null) setState(() => _usernameError = null);
+    });
+    _displayNameController.addListener(() {
+      if (_displayNameError != null) setState(() => _displayNameError = null);
+    });
   }
 
   void _onPasswordChanged() {
@@ -54,8 +64,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _submit() async {
+    // Clear previous uniqueness errors so form re-validates cleanly
+    setState(() { _usernameError = null; _displayNameError = null; });
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _submitting = true);
+
+    // Check uniqueness before creating the auth user
+    final username = _usernameController.text.trim();
+    final displayName = _displayNameController.text.trim().isNotEmpty
+        ? _displayNameController.text.trim()
+        : username;
+
+    final usernameErr = await _authService.checkUsernameExists(username);
+    final displayNameErr = await _authService.checkDisplayNameExists(displayName);
+
+    if (usernameErr != null || displayNameErr != null) {
+      setState(() {
+        _submitting = false;
+        _usernameError = usernameErr;
+        _displayNameError = displayNameErr;
+      });
+      _formKey.currentState!.validate();
+      return;
+    }
+
     final auth = context.read<AuthProvider>();
     final success = await auth.signUp(
       email: _emailController.text.trim(),
@@ -153,8 +186,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         hint: 'datascience_hero',
                         icon: Icons.alternate_email,
                         accentColor: const Color(0xFF00D4AA),
-                        validator: (v) => v != null && v.length >= 3
-                            ? null : 'Minimum 3 characters',
+                        validator: (v) {
+                          if (v == null || v.length < 3) return 'Minimum 3 characters';
+                          if (_usernameError != null) return _usernameError;
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
                       _GradientTextField(
@@ -163,6 +199,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         hint: 'Your Name',
                         icon: Icons.badge_outlined,
                         accentColor: const Color(0xFF9B59B6),
+                        validator: (_) => _displayNameError,
                       ),
                       const SizedBox(height: 16),
                       // Password field with live validity indicator

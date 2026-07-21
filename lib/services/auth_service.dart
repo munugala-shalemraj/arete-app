@@ -19,6 +19,24 @@ class AuthService {
   User? get currentUser => _client.auth.currentUser;
   Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 
+  Future<String?> checkUsernameExists(String username) async {
+    final data = await _client
+        .from('profiles')
+        .select('username')
+        .eq('username', username)
+        .maybeSingle();
+    return data != null ? 'Username "$username" is already taken. Please choose a different one.' : null;
+  }
+
+  Future<String?> checkDisplayNameExists(String displayName) async {
+    final data = await _client
+        .from('profiles')
+        .select('display_name')
+        .eq('display_name', displayName)
+        .maybeSingle();
+    return data != null ? 'Display name "$displayName" is already taken. Please choose a different one.' : null;
+  }
+
   Future<AuthResponse> signUp({
     required String email,
     required String password,
