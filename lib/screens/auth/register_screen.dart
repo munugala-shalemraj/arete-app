@@ -66,6 +66,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return null;
   }
 
+  Future<void> _showConsentFlow() async {
+    if (!_formKey.currentState!.validate()) return;
+    final agreed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _ConsentFlow(),
+    );
+    if (agreed == true && mounted) await _submit();
+  }
+
   Future<void> _submit() async {
     // Clear previous uniqueness errors so form re-validates cleanly
     setState(() { _usernameError = null; _displayNameError = null; });
@@ -262,7 +273,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ],
                         ),
                         child: ElevatedButton(
-                          onPressed: _submitting ? null : _submit,
+                          onPressed: _submitting ? null : _showConsentFlow,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
                             shadowColor: Colors.transparent,
@@ -700,6 +711,380 @@ class _PerkChip extends StatelessWidget {
       child: Text(label,
         style: GoogleFonts.outfit(fontSize: 11, color: Colors.white60,
             fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PIS + Consent modal — shown before account creation
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ConsentFlow extends StatefulWidget {
+  const _ConsentFlow();
+  @override
+  State<_ConsentFlow> createState() => _ConsentFlowState();
+}
+
+class _ConsentFlowState extends State<_ConsentFlow> {
+  final _pageController = PageController();
+  int _page = 0;
+  final List<bool> _ticked = List.filled(6, false);
+
+  bool get _allTicked => _ticked.every((t) => t);
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.88,
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F0F2E),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(children: [
+        // Handle bar
+        const SizedBox(height: 12),
+        Container(width: 40, height: 4,
+          decoration: BoxDecoration(color: Colors.white24,
+            borderRadius: BorderRadius.circular(2))),
+        const SizedBox(height: 16),
+        // Step indicator
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(children: [
+            _StepDot(active: _page == 0, done: _page > 0, label: 'Information'),
+            Expanded(child: Container(height: 1,
+              color: _page > 0 ? const Color(0xFF00D4AA) : Colors.white12)),
+            _StepDot(active: _page == 1, done: false, label: 'Consent'),
+          ]),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: PageView(
+            controller: _pageController,
+            physics: const NeverScrollableScrollPhysics(),
+            children: [_PisPage(), _ConsentPage(ticked: _ticked,
+              onToggle: (i, v) => setState(() => _ticked[i] = v))],
+          ),
+        ),
+        // Bottom action bar
+        Container(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F0F2E),
+            border: Border(top: BorderSide(color: Colors.white10)),
+          ),
+          child: Row(children: [
+            if (_page == 1)
+              TextButton(
+                onPressed: () {
+                  setState(() => _page = 0);
+                  _pageController.animateToPage(0,
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut);
+                },
+                child: Text('Back',
+                  style: GoogleFonts.outfit(color: Colors.white54,
+                    fontWeight: FontWeight.w600)),
+              ),
+            const Spacer(),
+            SizedBox(
+              height: 48,
+              child: ElevatedButton(
+                onPressed: _page == 0
+                  ? () {
+                      setState(() => _page = 1);
+                      _pageController.animateToPage(1,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut);
+                    }
+                  : _allTicked
+                      ? () => Navigator.of(context).pop(true)
+                      : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _page == 0
+                    ? const Color(0xFF4B8BBE)
+                    : _allTicked
+                        ? const Color(0xFF00D4AA)
+                        : Colors.white12,
+                  foregroundColor: _allTicked || _page == 0
+                    ? Colors.white : Colors.white38,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                ),
+                child: Text(
+                  _page == 0 ? 'Continue to Consent' : 'I Agree & Create Account',
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.w700, fontSize: 14)),
+              ),
+            ),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
+
+class _StepDot extends StatelessWidget {
+  final bool active;
+  final bool done;
+  final String label;
+  const _StepDot({required this.active, required this.done, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = done || active ? const Color(0xFF00D4AA) : Colors.white24;
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(width: 28, height: 28,
+        decoration: BoxDecoration(shape: BoxShape.circle,
+          color: color.withOpacity(0.15),
+          border: Border.all(color: color, width: 1.5)),
+        child: Center(child: done
+          ? const Icon(Icons.check, color: Color(0xFF00D4AA), size: 14)
+          : Icon(active ? Icons.circle : Icons.circle_outlined,
+              color: color, size: 10))),
+      const SizedBox(height: 4),
+      Text(label, style: GoogleFonts.outfit(fontSize: 10, color: color)),
+    ]);
+  }
+}
+
+// ── Page 1: Participant Information Sheet ─────────────────────────────────────
+
+class _PisPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _PisHeader(),
+        const SizedBox(height: 16),
+        _PisSection('Study Title',
+          'Arete: Evaluating a Gamified Learning Platform for Python Data Science'),
+        _PisSection('Researcher',
+          'Shalem Raj Munugala\nMSc Computer Science, Newcastle University\nmunugalashalemraj2000@gmail.com'),
+        _PisSection('Purpose of the Study',
+          'This study investigates whether gamification elements (points, badges, streaks, '
+          'leaderboards) improve motivation and learning outcomes when studying Python for '
+          'Data Science. This research is conducted as part of an MSc dissertation (CSC8639) '
+          'at Newcastle University.'),
+        _PisSection('What Will You Be Asked to Do?',
+          '1. Complete a short knowledge test when you first register (≈5 minutes)\n'
+          '2. Use the Arete app to work through Python lessons and quizzes over two weeks '
+             '(29 July – 11 August 2026) at your own pace\n'
+          '3. Complete a follow-up knowledge test at the end of the study period\n'
+          '4. Complete two short surveys — a usability survey (SUS) and a motivation survey '
+             '(IMI) — at the end (≈10 minutes total)'),
+        _PisSection('Is Participation Voluntary?',
+          'Yes. Participation is entirely voluntary. You may withdraw from the study at '
+          'any time and without giving a reason, and this will not affect your academic '
+          'standing in any way. If you withdraw, any data you have provided will be deleted.'),
+        _PisSection('What Data Will Be Collected?',
+          '• Pre-test and post-test scores\n'
+          '• Lesson completion and quiz performance\n'
+          '• Usability (SUS) and motivation (IMI) survey responses\n'
+          '• App usage data (XP, streaks, badges earned)\n\n'
+          'No personally identifiable information (name, student ID) is linked to your '
+          'learning data. Your email address is used only for account authentication.'),
+        _PisSection('How Will Data Be Stored?',
+          'All data is stored securely on Supabase (encrypted cloud database). '
+          'Data will be retained for the duration of the dissertation and deleted '
+          'no later than 30 September 2026. Only the researcher has access to the data.'),
+        _PisSection('Will My Data Be Confidential?',
+          'Yes. All data used in the dissertation and any resulting publications will be '
+          'fully anonymised. Your identity will not be disclosed.'),
+        _PisSection('Who Has Approved This Study?',
+          'This study has received ethical approval from Newcastle University School of '
+          'Computing. If you have concerns about the conduct of the research, please '
+          'contact: computing.ethics@ncl.ac.uk'),
+        _PisSection('Contact',
+          'If you have any questions before or during the study, please contact:\n'
+          'Shalem Raj Munugala — munugalashalemraj2000@gmail.com'),
+        const SizedBox(height: 24),
+      ]),
+    );
+  }
+}
+
+class _PisHeader extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF4B8BBE).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF4B8BBE).withOpacity(0.3)),
+      ),
+      child: Row(children: [
+        const Icon(Icons.info_outline, color: Color(0xFF4B8BBE), size: 22),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Participant Information Sheet',
+            style: GoogleFonts.outfit(
+              fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+          const SizedBox(height: 2),
+          Text('Please read carefully before proceeding',
+            style: GoogleFonts.outfit(fontSize: 12, color: Colors.white54)),
+        ])),
+      ]),
+    );
+  }
+}
+
+class _PisSection extends StatelessWidget {
+  final String title;
+  final String body;
+  const _PisSection(this.title, this.body);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: GoogleFonts.outfit(
+          fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF00D4AA))),
+        const SizedBox(height: 6),
+        Text(body, style: GoogleFonts.outfit(
+          fontSize: 13, color: Colors.white70, height: 1.6)),
+      ]),
+    );
+  }
+}
+
+// ── Page 2: Consent Form ──────────────────────────────────────────────────────
+
+class _ConsentPage extends StatelessWidget {
+  final List<bool> ticked;
+  final void Function(int, bool) onToggle;
+  const _ConsentPage({required this.ticked, required this.onToggle});
+
+  static const _items = [
+    'I confirm that I have read and understood the Participant Information Sheet for this study.',
+    'I understand that my participation is voluntary and that I am free to withdraw at any time without giving a reason and without any negative consequences.',
+    'I understand that my responses will be anonymised and that no personally identifiable information will be used in the dissertation or any resulting publications.',
+    'I consent to my anonymised data being used for this MSc dissertation research and any resulting academic publications.',
+    'I confirm that I am 18 years of age or older.',
+    'I agree to take part in this study.',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final allTicked = ticked.every((t) => t);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF00D4AA).withOpacity(0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFF00D4AA).withOpacity(0.3)),
+          ),
+          child: Row(children: [
+            const Icon(Icons.assignment_turned_in_outlined,
+              color: Color(0xFF00D4AA), size: 22),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Consent Form',
+                style: GoogleFonts.outfit(
+                  fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+              const SizedBox(height: 2),
+              Text('Tick all boxes to confirm your consent',
+                style: GoogleFonts.outfit(fontSize: 12, color: Colors.white54)),
+            ])),
+          ]),
+        ),
+        const SizedBox(height: 20),
+        for (int i = 0; i < _items.length; i++) ...[
+          _ConsentItem(
+            index: i + 1,
+            text: _items[i],
+            value: ticked[i],
+            onChanged: (v) => onToggle(i, v),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (allTicked)
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF00D4AA).withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF00D4AA).withOpacity(0.3)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.check_circle, color: Color(0xFF00D4AA), size: 18),
+              const SizedBox(width: 10),
+              Expanded(child: Text(
+                'All consent items confirmed. You may now create your account.',
+                style: GoogleFonts.outfit(fontSize: 12, color: const Color(0xFF00D4AA)))),
+            ]),
+          ),
+        const SizedBox(height: 24),
+      ]),
+    );
+  }
+}
+
+class _ConsentItem extends StatelessWidget {
+  final int index;
+  final String text;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  const _ConsentItem({
+    required this.index, required this.text,
+    required this.value, required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: value
+            ? const Color(0xFF00D4AA).withOpacity(0.06)
+            : Colors.white.withOpacity(0.03),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: value
+              ? const Color(0xFF00D4AA).withOpacity(0.4)
+              : Colors.white12,
+            width: value ? 1.5 : 1.0),
+        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 22, height: 22,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: value ? const Color(0xFF00D4AA) : Colors.transparent,
+              border: Border.all(
+                color: value ? const Color(0xFF00D4AA) : Colors.white24,
+                width: 1.5),
+            ),
+            child: value
+              ? const Icon(Icons.check, color: Colors.black, size: 14)
+              : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text,
+            style: GoogleFonts.outfit(
+              fontSize: 13,
+              color: value ? Colors.white : Colors.white60,
+              height: 1.5))),
+        ]),
+      ),
     );
   }
 }
