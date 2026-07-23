@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../models/lesson.dart';
 import '../../providers/auth_provider.dart';
@@ -182,6 +183,7 @@ class _HomeTabState extends State<_HomeTab> {
   int _quizzesCompleted = 0;
   List<Lesson> _allLessons = [];
   bool _loading = true;
+  bool _hasPreTest = true; // assume done until checked
 
   @override
   void initState() {
@@ -221,6 +223,14 @@ class _HomeTabState extends State<_HomeTab> {
 
       final attempts = await _quizService.fetchAllAttempts(userId);
 
+    // Check if user has completed the pre-test
+    final preTestRows = await Supabase.instance.client
+        .from('feedback_responses')
+        .select('id')
+        .eq('user_id', userId)
+        .like('open_feedback', 'pre_test_score:%');
+    final hasPreTest = (preTestRows as List).isNotEmpty;
+
       // Adaptive recommendation: find weakest skill → match to uncompleted lesson
       // Reload profile to ensure skills are fresh
       final userProv = context.read<UserProvider>();
@@ -254,6 +264,7 @@ class _HomeTabState extends State<_HomeTab> {
         _allLessons = allLessons;
         _recommendedLesson = recommended;
         _recommendedSkill = recommendedSkill;
+        _hasPreTest = hasPreTest;
         _loading = false;
       });
     } catch (_) {
@@ -285,6 +296,14 @@ class _HomeTabState extends State<_HomeTab> {
           Text(dateStr,
             style: GoogleFonts.outfit(fontSize: 14, color: context.textHint)),
           const SizedBox(height: 24),
+
+          // Knowledge assessment banner — shown only until pre-test is done
+          if (!_loading && !_hasPreTest) ...[
+            _KnowledgeAssessmentBanner(
+              onTap: () => context.push('/test'),
+            ),
+            const SizedBox(height: 24),
+          ],
 
           // Stats row
           if (_loading) _shimmerRow()
@@ -414,6 +433,99 @@ class _HomeTabState extends State<_HomeTab> {
         borderRadius: BorderRadius.circular(20)),
     ),
   );
+}
+
+class _KnowledgeAssessmentBanner extends StatelessWidget {
+  final VoidCallback onTap;
+  const _KnowledgeAssessmentBanner({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6C3DE0), Color(0xFF4B8BBE)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6C3DE0).withOpacity(0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.psychology_outlined,
+                color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 14),
+            Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Knowledge Assessment',
+                  style: GoogleFonts.outfit(
+                    fontSize: 16, fontWeight: FontWeight.w800,
+                    color: Colors.white)),
+                const SizedBox(height: 2),
+                Text('Required before you begin',
+                  style: GoogleFonts.outfit(
+                    fontSize: 12, color: Colors.white70)),
+              ],
+            )),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text('≈5 min',
+                style: GoogleFonts.outfit(
+                  fontSize: 11, fontWeight: FontWeight.w700,
+                  color: Colors.white)),
+            ),
+          ]),
+          const SizedBox(height: 14),
+          Text(
+            'Help us understand your prior Python knowledge before you start learning. '
+            'Your answers are used for research purposes only and do not affect your progress.',
+            style: GoogleFonts.outfit(
+              fontSize: 13, color: Colors.white.withOpacity(0.85), height: 1.5),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: onTap,
+              icon: const Icon(Icons.play_arrow_rounded, size: 20),
+              label: Text('Attend Knowledge Assessment',
+                style: GoogleFonts.outfit(
+                  fontSize: 14, fontWeight: FontWeight.w800)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF6C3DE0),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ]),
+      ),
+    );
+  }
 }
 
 class _StatChip extends StatelessWidget {
