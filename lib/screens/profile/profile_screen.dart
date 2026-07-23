@@ -556,6 +556,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
 
+          const SizedBox(height: 28),
+
+          // Research documents section
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Research Documents',
+              style: GoogleFonts.outfit(
+                fontSize: 13, fontWeight: FontWeight.w700,
+                color: context.textHint)),
+          ),
+          const SizedBox(height: 10),
+          _DocButton(
+            label: 'Participant Information Sheet',
+            icon: Icons.info_outline,
+            color: const Color(0xFF4B8BBE),
+            onTap: () => _showDoc(context, const _PisDoc()),
+          ),
+          const SizedBox(height: 8),
+          _DocButton(
+            label: 'Consent Form',
+            icon: Icons.assignment_turned_in_outlined,
+            color: const Color(0xFF00D4AA),
+            onTap: () => _showDoc(context, const _ConsentDoc()),
+          ),
+          const SizedBox(height: 8),
+          _DocButton(
+            label: 'Debriefing Sheet',
+            icon: Icons.description_outlined,
+            color: const Color(0xFF9B59B6),
+            onTap: () => _showDoc(context, const _DebriefDoc()),
+          ),
+
           const SizedBox(height: 24),
 
           // Theme toggle
@@ -777,6 +809,424 @@ class _ThemeToggleTile extends StatelessWidget {
           value: isDark,
           onChanged: (_) => themeProvider.toggle(),
         ),
+      ]),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Research document helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+void _showDoc(BuildContext context, Widget doc) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => doc,
+  );
+}
+
+class _DocButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _DocButton({
+    required this.label, required this.icon,
+    required this.color, required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 18),
+        label: Text(label, style: GoogleFonts.outfit(fontSize: 14)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: color,
+          side: BorderSide(color: color, width: 1),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Shared bottom-sheet shell ─────────────────────────────────────────────────
+
+class _DocShell extends StatelessWidget {
+  final String title;
+  final Color color;
+  final IconData icon;
+  final Widget body;
+  const _DocShell({
+    required this.title, required this.color,
+    required this.icon, required this.body,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.9,
+      decoration: BoxDecoration(
+        color: context.bgPrimary,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(children: [
+        const SizedBox(height: 12),
+        Container(width: 40, height: 4,
+          decoration: BoxDecoration(color: Colors.white24,
+            borderRadius: BorderRadius.circular(2))),
+        const SizedBox(height: 16),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(title,
+              style: GoogleFonts.outfit(
+                fontSize: 16, fontWeight: FontWeight.w800,
+                color: context.textPrimary))),
+            IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: Icon(Icons.close, color: context.textHint),
+            ),
+          ]),
+        ),
+        Divider(color: context.borderMid, height: 24),
+        Expanded(child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+          child: body,
+        )),
+      ]),
+    );
+  }
+}
+
+// ── Section helper used in all three docs ────────────────────────────────────
+
+class _DocSection extends StatelessWidget {
+  final String heading;
+  final String body;
+  const _DocSection(this.heading, this.body);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(heading,
+          style: GoogleFonts.outfit(
+            fontSize: 13, fontWeight: FontWeight.w700,
+            color: const Color(0xFF00D4AA))),
+        const SizedBox(height: 6),
+        Text(body,
+          style: GoogleFonts.outfit(
+            fontSize: 13, color: context.textSecondary, height: 1.65)),
+      ]),
+    );
+  }
+}
+
+// ── 1. Participant Information Sheet ─────────────────────────────────────────
+
+class _PisDoc extends StatelessWidget {
+  const _PisDoc();
+
+  @override
+  Widget build(BuildContext context) {
+    return _DocShell(
+      title: 'Participant Information Sheet',
+      color: const Color(0xFF4B8BBE),
+      icon: Icons.info_outline,
+      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(
+          'Arete: A Gamified Data Science Learning Platform\n'
+          'MSc Computer Science · Newcastle University · 2025–2026',
+          style: GoogleFonts.outfit(
+            fontSize: 12, color: context.textHint, height: 1.5)),
+        const SizedBox(height: 18),
+        const _DocSection('Study Title',
+          'Arete: Evaluating a Gamified Learning Platform for Python Data Science'),
+        const _DocSection('Principal Researcher',
+          'Shalem Raj Munugala\n'
+          'MSc Computer Science, Newcastle University\n'
+          's.munugala2@newcastle.ac.uk'),
+        const _DocSection('Supervisor',
+          'Dr Sara Johansson Fernstad\n'
+          'School of Computing, Newcastle University\n'
+          'sara.fernstad@newcastle.ac.uk'),
+        const _DocSection('Purpose of the Study',
+          'This study investigates whether the Arete platform — which combines '
+          'gamification, an open student model, and Self-Determination Theory — '
+          'improves motivation, engagement, and data science learning outcomes. '
+          'This research is conducted as part of an MSc dissertation (CSC8639) '
+          'at Newcastle University.'),
+        const _DocSection('What Will You Be Asked to Do?',
+          '1. Complete a short knowledge assessment when you first register (≈5 minutes)\n'
+          '2. Use the Arete app to work through Python lessons and quizzes over two weeks '
+             '(29 July – 11 August 2026) at your own pace\n'
+          '3. Complete a follow-up knowledge assessment at the end of the study period\n'
+          '4. Complete two short surveys — a Usability Survey (SUS) and a Motivation '
+             'Survey (IMI) — at the end (≈10 minutes total)'),
+        const _DocSection('Is Participation Voluntary?',
+          'Yes. Participation is entirely voluntary. You may withdraw at any time '
+          'and without giving a reason. Withdrawal will not affect your academic '
+          'standing in any way. If you withdraw, any data you have provided will be deleted.'),
+        const _DocSection('What Data Will Be Collected?',
+          '• Pre-test and post-test scores\n'
+          '• Lesson completion and quiz performance\n'
+          '• Usability (SUS) and motivation (IMI) survey responses\n'
+          '• App usage data (XP, streaks, badges earned)\n\n'
+          'No personally identifiable information is linked to your learning data. '
+          'Your email address is used only for account authentication.'),
+        const _DocSection('How Will Data Be Stored?',
+          'All data is stored securely on a GDPR-compliant EU-based server '
+          '(Supabase, Frankfurt), accessible only to the researcher and supervisor. '
+          'Data will be retained for five years in line with Newcastle University '
+          'policy, then securely deleted.'),
+        const _DocSection('Will My Data Be Confidential?',
+          'Yes. All data used in the dissertation and any resulting publications '
+          'will be fully anonymised. Your identity will not be disclosed at any point.'),
+        const _DocSection('Ethical Approval',
+          'This study has received ethical approval from Newcastle University '
+          'School of Computing. For ethics queries: SAGE.Ethics@ncl.ac.uk'),
+        const _DocSection('Contact',
+          'Researcher: s.munugala2@newcastle.ac.uk\n'
+          'Supervisor: sara.fernstad@newcastle.ac.uk\n'
+          'Complaints: research.integrity@ncl.ac.uk'),
+      ]),
+    );
+  }
+}
+
+// ── 2. Consent Form ──────────────────────────────────────────────────────────
+
+class _ConsentDoc extends StatelessWidget {
+  const _ConsentDoc();
+
+  static const _items = [
+    'I confirm that I have read and understood the Participant Information Sheet for this study.',
+    'I understand that my participation is voluntary and that I am free to withdraw at any time without giving a reason and without any negative consequences.',
+    'I understand that my responses will be anonymised and that no personally identifiable information will be used in the dissertation or any resulting publications.',
+    'I consent to my anonymised data being used for this MSc dissertation research and any resulting academic publications.',
+    'I confirm that I am 18 years of age or older.',
+    'I agree to take part in this study.',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return _DocShell(
+      title: 'Consent Form',
+      color: const Color(0xFF00D4AA),
+      icon: Icons.assignment_turned_in_outlined,
+      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(
+          'Arete: A Gamified Data Science Learning Platform\n'
+          'MSc Computer Science · Newcastle University · 2025–2026',
+          style: GoogleFonts.outfit(
+            fontSize: 12, color: context.textHint, height: 1.5)),
+        const SizedBox(height: 18),
+        Text(
+          'The following consent was provided by you during registration. '
+          'This is a record of the items you agreed to.',
+          style: GoogleFonts.outfit(
+            fontSize: 13, color: context.textSecondary, height: 1.5)),
+        const SizedBox(height: 20),
+        for (int i = 0; i < _items.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(
+                margin: const EdgeInsets.only(top: 2),
+                width: 22, height: 22,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF00D4AA).withOpacity(0.15),
+                  border: Border.all(color: const Color(0xFF00D4AA), width: 1.5),
+                ),
+                child: const Icon(Icons.check, color: Color(0xFF00D4AA), size: 13),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text(_items[i],
+                style: GoogleFonts.outfit(
+                  fontSize: 13, color: context.textSecondary, height: 1.6))),
+            ]),
+          ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF00D4AA).withOpacity(0.07),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF00D4AA).withOpacity(0.25)),
+          ),
+          child: Text(
+            'Researcher: Shalem Raj Munugala · s.munugala2@newcastle.ac.uk\n'
+            'Supervisor: Dr Sara Johansson Fernstad · sara.fernstad@newcastle.ac.uk',
+            style: GoogleFonts.outfit(
+              fontSize: 12, color: context.textHint, height: 1.6)),
+        ),
+      ]),
+    );
+  }
+}
+
+// ── 3. Debriefing Sheet ──────────────────────────────────────────────────────
+
+class _DebriefDoc extends StatelessWidget {
+  const _DebriefDoc();
+
+  @override
+  Widget build(BuildContext context) {
+    return _DocShell(
+      title: 'Debriefing Sheet',
+      color: const Color(0xFF9B59B6),
+      icon: Icons.description_outlined,
+      body: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(
+          'Arete: A Gamified Data Science Learning Platform\n'
+          'MSc Computer Science · Newcastle University · 2025–2026',
+          style: GoogleFonts.outfit(
+            fontSize: 12, color: context.textHint, height: 1.5)),
+        const SizedBox(height: 6),
+        Text('Dear Participant,',
+          style: GoogleFonts.outfit(
+            fontSize: 13, fontWeight: FontWeight.w600,
+            color: context.textSecondary)),
+        const SizedBox(height: 6),
+        Text(
+          'You have now completed your participation in the Arete research study. '
+          'Thank you very much for your time and contribution — your participation '
+          'is genuinely valued and will help improve how data science is taught to '
+          'students like yourself.',
+          style: GoogleFonts.outfit(
+            fontSize: 13, color: context.textSecondary, height: 1.65)),
+        const SizedBox(height: 20),
+        const _DocSection('1. What Was This Study About?',
+          'The study investigated whether the Arete platform — which combines '
+          'gamification, an open student model, and Self-Determination Theory — '
+          'improves motivation, engagement, and data science learning outcomes.\n\n'
+          'The three hypotheses tested were:\n\n'
+          '• H1: Students will show higher intrinsic motivation (IMI subscales) at '
+             'the end compared to the start.\n'
+          '• H2: Students will show measurable improvement in data science quiz '
+             'performance across the study period.\n'
+          '• H3: SDT scores (autonomy, competence, relatedness) will be positively '
+             'correlated with engagement metrics and learning outcomes.\n\n'
+          'There were no deceptive elements in this study. Everything described in '
+          'the Participant Information Sheet accurately reflected what was involved.'),
+        const _DocSection('2. Why Does This Research Matter?',
+          'The global demand for data science skills is growing rapidly, yet '
+          'completion rates on existing online learning platforms remain critically '
+          'low — typically under 10% on MOOCs (Jordan, 2014). Most platforms rely '
+          'on passive content without grounding design in validated motivation theory.\n\n'
+          'This study is one of the first to combine:\n'
+          '• Five-element gamification (XP, badges, leaderboards, streaks, challenges)\n'
+          '• A transparent open student model showing learners their knowledge state\n'
+          '• Self-Determination Theory operationalised as measurable indicators\n'
+          '• Cross-platform deployment (Android and web) from a single codebase\n\n'
+          'Findings will contribute to the academic literature on gamified educational '
+          'technology and directly inform further development of Arete.'),
+        const _DocSection('3. What Happened to Your Data?',
+          'The following data was collected: lesson completions, quiz scores, time on '
+          'task, XP earned, badges unlocked, challenge completions, and survey responses '
+          '(IMI, SUS, open feedback). All data was linked only to your anonymised '
+          'participant ID — your name was never stored with your research data.\n\n'
+          'Data is stored on a GDPR-compliant EU-based server (Supabase, Frankfurt), '
+          'accessible only to the principal researcher and supervisor. It will be '
+          'retained for five years in line with Newcastle University policy, then '
+          'securely deleted.'),
+        const _DocSection('4. Your Right to Withdraw Your Data',
+          'You have four weeks from the end of the study (11 August 2026) to request '
+          'that your data be withdrawn and deleted.\n\n'
+          'To withdraw, contact the principal researcher using the details below, '
+          'quoting your participant ID. After four weeks, your anonymised data may '
+          'have been incorporated into published analyses that cannot be retrospectively '
+          'altered, and withdrawal will no longer be possible.'),
+        const _DocSection('5. A Personal Note on Your Learning',
+          'Over the course of this study you engaged with lessons covering Python for '
+          'Data Science. Regardless of where you started, every lesson you completed '
+          'and every quiz you attempted represents genuine progress in building your '
+          'data science expertise. We hope Arete made that process more engaging and '
+          'more transparent than it would otherwise have been.'),
+        const _DocSection('6. What Happens Next?',
+          'The data collected will be analysed and written up as part of the MSc '
+          'dissertation, to be submitted in 2026. Key findings may also be submitted '
+          'for publication in academic journals or presented at educational technology '
+          'conferences. Results will always be reported in anonymised, aggregated '
+          'form — no individual will be identifiable.\n\n'
+          'If you would like to receive a summary of the findings, please contact the '
+          'researcher and request to be added to the findings mailing list.'),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF9B59B6).withOpacity(0.07),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF9B59B6).withOpacity(0.25)),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('7. Contact Details',
+              style: GoogleFonts.outfit(
+                fontSize: 13, fontWeight: FontWeight.w700,
+                color: const Color(0xFF9B59B6))),
+            const SizedBox(height: 10),
+            _ContactRow('Principal Researcher',
+              'Shalem Raj Munugala\ns.munugala2@newcastle.ac.uk'),
+            _ContactRow('Supervisor',
+              'Dr Sara Johansson Fernstad\nsara.fernstad@newcastle.ac.uk'),
+            _ContactRow('Ethics queries', 'SAGE.Ethics@ncl.ac.uk'),
+            _ContactRow('Complaints', 'research.integrity@ncl.ac.uk'),
+            _ContactRow('Data protection', 'res.policy@ncl.ac.uk'),
+            _ContactRow('ICO (data rights)', 'www.ico.org.uk · 0303 123 1113'),
+          ]),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Thank you again for participating in this study.\n'
+          'Your contribution is making data science education better for the '
+          'students who come after you.',
+          style: GoogleFonts.outfit(
+            fontSize: 13, color: context.textSecondary,
+            height: 1.65, fontStyle: FontStyle.italic)),
+        const SizedBox(height: 8),
+        Text(
+          'Shalem Raj Munugala · MSc Computer Science · Newcastle University · 2025–2026',
+          style: GoogleFonts.outfit(fontSize: 11, color: context.textHint)),
+      ]),
+    );
+  }
+}
+
+class _ContactRow extends StatelessWidget {
+  final String role;
+  final String detail;
+  const _ContactRow(this.role, this.detail);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SizedBox(width: 120,
+          child: Text(role,
+            style: GoogleFonts.outfit(
+              fontSize: 11, fontWeight: FontWeight.w700,
+              color: context.textHint))),
+        Expanded(child: Text(detail,
+          style: GoogleFonts.outfit(
+            fontSize: 11, color: context.textSecondary, height: 1.5))),
       ]),
     );
   }
