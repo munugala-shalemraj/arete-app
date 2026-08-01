@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/badge_model.dart' as badge_model;
 import '../../providers/auth_provider.dart';
@@ -593,6 +594,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           // Theme toggle
           _ThemeToggleTile(),
 
+          const SizedBox(height: 12),
+
+          // Quiz timer toggle
+          const _QuizTimerToggleTile(),
+
           const SizedBox(height: 16),
 
           // Change password
@@ -808,6 +814,67 @@ class _ThemeToggleTile extends StatelessWidget {
         Switch(
           value: isDark,
           onChanged: (_) => themeProvider.toggle(),
+        ),
+      ]),
+    );
+  }
+}
+
+class _QuizTimerToggleTile extends StatefulWidget {
+  const _QuizTimerToggleTile();
+
+  @override
+  State<_QuizTimerToggleTile> createState() => _QuizTimerToggleTileState();
+}
+
+class _QuizTimerToggleTileState extends State<_QuizTimerToggleTile> {
+  bool _enabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      setState(() => _enabled = prefs.getBool('quiz_timer_enabled') ?? true);
+    });
+  }
+
+  Future<void> _toggle(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('quiz_timer_enabled', value);
+    setState(() => _enabled = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: context.bgSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: context.borderSubtle),
+      ),
+      child: Row(children: [
+        Icon(
+          Icons.timer_outlined,
+          color: _enabled ? AColors.gold : context.textDisabled,
+          size: 20,
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Quiz Timer',
+              style: GoogleFonts.outfit(
+                fontSize: 14, fontWeight: FontWeight.w600,
+                color: context.textPrimary)),
+            Text(_enabled ? '60 seconds per question' : 'Timer is off',
+              style: GoogleFonts.outfit(
+                fontSize: 11, color: context.textHint)),
+          ]),
+        ),
+        Switch(
+          value: _enabled,
+          onChanged: _toggle,
+          activeColor: AColors.gold,
         ),
       ]),
     );

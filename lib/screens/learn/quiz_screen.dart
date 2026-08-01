@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
@@ -39,12 +40,16 @@ class _QuizScreenState extends State<QuizScreen> {
   static const _questionTime = 60;
   int _timeLeft = _questionTime;
   Timer? _timer;
+  bool _timerEnabled = true;
 
   @override
   void initState() {
     super.initState();
     _startedAt = DateTime.now().toUtc();
-    _load();
+    SharedPreferences.getInstance().then((prefs) {
+      _timerEnabled = prefs.getBool('quiz_timer_enabled') ?? true;
+      _load();
+    });
   }
 
   @override
@@ -56,6 +61,7 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void _startTimer() {
     _timer?.cancel();
+    if (!_timerEnabled) return;
     _timeLeft = _questionTime;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
@@ -278,8 +284,10 @@ class _QuizScreenState extends State<QuizScreen> {
               'Q${_currentIndex + 1} of ${_questions.length}',
               style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 15),
             ),
-            const SizedBox(width: 14),
-            _TimerBadge(timeLeft: _timeLeft, total: _questionTime),
+            if (_timerEnabled) ...[
+              const SizedBox(width: 14),
+              _TimerBadge(timeLeft: _timeLeft, total: _questionTime),
+            ],
           ],
         ),
         centerTitle: true,
