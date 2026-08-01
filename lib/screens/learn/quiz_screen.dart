@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,9 +22,11 @@ class QuizScreen extends StatefulWidget {
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
-class _QuizScreenState extends State<QuizScreen> {
+class _QuizScreenState extends State<QuizScreen>
+    with TickerProviderStateMixin {
   final _quizService = QuizService();
   final _gamService = GamificationService();
+  final _audioPlayer = AudioPlayer();
 
   List<QuizQuestion> _questions = [];
   int _currentIndex = 0;
@@ -33,11 +36,42 @@ class _QuizScreenState extends State<QuizScreen> {
   bool _loading = true;
   late final DateTime _startedAt;
 
+  // XP float animation
+  late final AnimationController _xpCtrl;
+  late final Animation<double> _xpY;
+  late final Animation<double> _xpOpacity;
+  OverlayEntry? _xpOverlay;
+
+  // GlobalKeys so we can look up each option button's screen position
+  final _optionKeys = <String, GlobalKey>{
+    'a': GlobalKey(), 'b': GlobalKey(),
+    'c': GlobalKey(), 'd': GlobalKey(),
+  };
+
   @override
   void initState() {
     super.initState();
     _startedAt = DateTime.now().toUtc();
     _load();
+
+    _xpCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    );
+    _xpY = Tween<double>(begin: 0, end: -88).animate(
+      CurvedAnimation(parent: _xpCtrl, curve: Curves.easeOut));
+    _xpOpacity = Tween<double>(begin: 1, end: 0).animate(
+      CurvedAnimation(
+        parent: _xpCtrl,
+        curve: const Interval(0.45, 1.0, curve: Curves.easeIn)));
+  }
+
+  @override
+  void dispose() {
+    _xpOverlay?.remove();
+    _xpCtrl.dispose();
+    _audioPlayer.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -52,9 +86,74 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void _checkAnswer() {
     if (_selectedOption == null) return;
+    final isCorrect = _questions[_currentIndex].isCorrect(_selectedOption!);
     setState(() {
       _checked = true;
-      if (_questions[_currentIndex].isCorrect(_selectedOption!)) _score++;
+      if (isCorrect) _score++;
+    });
+    if (isCorrect) {
+      _playCorrectSound();
+      // small delay so the option repaints green before we read its position
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showXpFloat(_selectedOption!);
+      });
+    }
+  }
+
+  Future<void> _playCorrectSound() async {
+    await _audioPlayer.play(AssetSource('audio/correct.wav'));
+  }
+
+  void _showXpFloat(String option) {
+    final key = _optionKeys[option];
+    if (key == null) return;
+    final box = key.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    // Centre-top of the tapped option button in global coordinates
+    final origin = box.localToGlobal(Offset(box.size.width / 2, 0));
+
+    _xpOverlay?.remove();
+    _xpCtrl.reset();
+
+    _xpOverlay = OverlayEntry(
+      builder: (_) => AnimatedBuilder(
+        animation: _xpCtrl,
+        builder: (_, __) => Positioned(
+          left: origin.dx - 44,
+          top: origin.dy + _xpY.value,
+          child: Opacity(
+            opacity: _xpOpacity.value,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2ECC71),
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2ECC71).withOpacity(0.45),
+                    blurRadius: 10, spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: Text(
+                '+$xpPerCorrectAnswer XP',
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: .4,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(_xpOverlay!);
+    _xpCtrl.forward().then((_) {
+      _xpOverlay?.remove();
+      _xpOverlay = null;
     });
   }
 
@@ -275,6 +374,7 @@ class _QuizScreenState extends State<QuizScreen> {
                 const SizedBox(height: 28),
                 for (final opt in ['a', 'b', 'c', 'd'])
                   _OptionButton(
+                    key: _optionKeys[opt],
                     option: opt,
                     text: q.optionText(opt),
                     state: _checked
@@ -411,6 +511,7 @@ class _OptionButton extends StatelessWidget {
   final _OptionState state;
   final VoidCallback onTap;
   const _OptionButton({
+    super.key,
     required this.option, required this.text,
     required this.state, required this.onTap,
   });
