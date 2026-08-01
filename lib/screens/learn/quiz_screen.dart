@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
@@ -35,6 +36,10 @@ class _QuizScreenState extends State<QuizScreen> {
   bool _loading = true;
   late final DateTime _startedAt;
 
+  static const _questionTime = 60;
+  int _timeLeft = _questionTime;
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
@@ -44,13 +49,39 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   void dispose() {
+    _timer?.cancel();
     _audioPlayer.dispose();
     super.dispose();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timeLeft = _questionTime;
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (_timeLeft <= 1) {
+        _timer?.cancel();
+        // Time's up — auto-check with whatever is selected (or skip if none)
+        if (!_checked) _timeUp();
+      } else {
+        setState(() => _timeLeft--);
+      }
+    });
+  }
+
+  void _timeUp() {
+    _audioPlayer.play(AssetSource('audio/wrong.wav'));
+    setState(() {
+      _checked = true;
+      _timeLeft = 0;
+      // score doesn't increment — time ran out
+    });
   }
 
   Future<void> _load() async {
     final qs = await _quizService.fetchQuestionsForLesson(widget.lesson.id);
     setState(() { _questions = qs; _loading = false; });
+    _startTimer();
   }
 
   void _selectOption(String opt) {
@@ -60,6 +91,7 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void _checkAnswer() {
     if (_selectedOption == null) return;
+    _timer?.cancel();
     final isCorrect = _questions[_currentIndex].isCorrect(_selectedOption!);
     setState(() {
       _checked = true;
@@ -76,7 +108,9 @@ class _QuizScreenState extends State<QuizScreen> {
         _selectedOption = null;
         _checked = false;
       });
+      _startTimer();
     } else {
+      _timer?.cancel();
       _finishQuiz();
     }
   }
@@ -174,6 +208,7 @@ class _QuizScreenState extends State<QuizScreen> {
         },
         onRetry: total > 0 ? () {
           Navigator.of(context).pop();
+          _timer?.cancel();
           setState(() {
             _currentIndex = 0;
             _selectedOption = null;
@@ -236,9 +271,16 @@ class _QuizScreenState extends State<QuizScreen> {
           icon: Icon(Icons.close, color: context.textSecondary),
           onPressed: () => _confirmExit(context),
         ),
-        title: Text(
-          'Q${_currentIndex + 1} of ${_questions.length}',
-          style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 15),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Q${_currentIndex + 1} of ${_questions.length}',
+              style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 15),
+            ),
+            const SizedBox(width: 14),
+            _TimerBadge(timeLeft: _timeLeft, total: _questionTime),
+          ],
         ),
         centerTitle: true,
         bottom: PreferredSize(
@@ -411,6 +453,40 @@ class _QuizScreenState extends State<QuizScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ── Timer badge ──────────────────────────────────────────────────────────────
+
+class _TimerBadge extends StatelessWidget {
+  final int timeLeft;
+  final int total;
+  const _TimerBadge({required this.timeLeft, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    final frac = timeLeft / total;
+    final color = frac > 0.4
+        ? const Color(0xFF4CAF50)
+        : frac > 0.2
+            ? const Color(0xFFFFA726)
+            : Colors.redAccent;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.5)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.timer_outlined, color: color, size: 13),
+        const SizedBox(width: 4),
+        Text('${timeLeft}s',
+          style: GoogleFonts.outfit(
+            color: color, fontSize: 13, fontWeight: FontWeight.w700)),
+      ]),
     );
   }
 }
