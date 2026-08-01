@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -19,12 +20,14 @@ class DailyChallengeScreen extends StatefulWidget {
 
 class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
   final _service = QuizService();
+  final _audio = AudioPlayer();
   List<QuizQuestion> _questions = [];
   bool _loading = true;
   bool _alreadyDone = false;
   int _current = 0;
   String? _selected;
   bool _checked = false;
+  bool _lastCorrect = false;
   int _score = 0;
   bool _finished = false;
   Timer? _timer;
@@ -41,6 +44,7 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _audio.dispose();
     super.dispose();
   }
 
@@ -63,7 +67,8 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
       if (!mounted) { t.cancel(); return; }
       if (_timeLeft <= 1) {
         t.cancel();
-        setState(() { _timeLeft = 0; _checked = true; });
+        _audio.play(AssetSource('audio/wrong.wav'));
+        setState(() { _timeLeft = 0; _checked = true; _lastCorrect = false; });
         Future.delayed(const Duration(milliseconds: 800), _advance);
       } else {
         setState(() => _timeLeft--);
@@ -75,8 +80,10 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
     if (_checked || _selected == null) return;
     _timer?.cancel();
     final correct = _questions[_current].isCorrect(_selected!);
+    _audio.play(AssetSource(correct ? 'audio/correct.wav' : 'audio/wrong.wav'));
     setState(() {
       _checked = true;
+      _lastCorrect = correct;
       if (correct) _score++;
     });
     Future.delayed(const Duration(milliseconds: 900), _advance);
@@ -85,7 +92,12 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
   void _advance() {
     if (!mounted) return;
     if (_current < _questions.length - 1) {
-      setState(() { _current++; _selected = null; _checked = false; });
+      setState(() {
+        _current++;
+        _selected = null;
+        _checked = false;
+        _lastCorrect = false;
+      });
       _startTimer();
     } else {
       _finish();
@@ -316,49 +328,28 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (_, i) {
               final key = _optionKeys[i];
-              Color borderColor = context.borderMid;
-              Color bgColor = context.bgCard;
-              IconData? trailingIcon;
-              Color iconColor = context.textDisabled;
-
+              final isCorrectKey = key == q.correctOption.toLowerCase();
+              final isSelectedKey = _selected?.toLowerCase() == key;
+              _DCOptionState state;
               if (_checked) {
-                if (key == q.correctOption.toLowerCase()) {
-                  borderColor = AColors.correct;
-                  bgColor = AColors.correct.withOpacity(0.08);
-                  trailingIcon = Icons.check_circle;
-                  iconColor = AColors.correct;
-                } else if (key == _selected?.toLowerCase()) {
-                  borderColor = AColors.wrong;
-                  bgColor = AColors.wrong.withOpacity(0.07);
-                  trailingIcon = Icons.cancel;
-                  iconColor = AColors.wrong;
+                if (isCorrectKey) {
+                  state = _DCOptionState.correct;
+                } else if (isSelectedKey) {
+                  state = _DCOptionState.wrong;
+                } else {
+                  state = _DCOptionState.neutral;
                 }
-              } else if (_selected?.toLowerCase() == key) {
-                borderColor = AColors.selected;
-                bgColor = AColors.selected.withOpacity(0.06);
+              } else if (isSelectedKey) {
+                state = _DCOptionState.selected;
+              } else {
+                state = _DCOptionState.neutral;
               }
-
-              return GestureDetector(
-                onTap: _checked
-                    ? null
-                    : () => setState(() => _selected = key),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: bgColor,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: borderColor, width: 1.5),
-                  ),
-                  child: Row(children: [
-                    Expanded(child: Text(opts[i],
-                      style: GoogleFonts.outfit(
-                        fontSize: 14, color: context.textPrimary))),
-                    if (trailingIcon != null)
-                      Icon(trailingIcon, color: iconColor, size: 18),
-                  ]),
-                ),
+              return _DCOptionButton(
+                text: opts[i],
+                optionKey: key,
+                state: state,
+                showXp: _checked && _lastCorrect && isSelectedKey,
+                onTap: _checked ? null : () => setState(() => _selected = key),
               );
             },
           ),
@@ -383,6 +374,154 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
           ),
         ),
       ]),
+    );
+  }
+}
+
+// ── Option button with XP float animation ────────────────────────────────────
+
+enum _DCOptionState { neutral, selected, correct, wrong }
+
+class _DCOptionButton extends StatefulWidget {
+  final String text;
+  final String optionKey;
+  final _DCOptionState state;
+  final bool showXp;
+  final VoidCallback? onTap;
+
+  const _DCOptionButton({
+    required this.text,
+    required this.optionKey,
+    required this.state,
+    required this.showXp,
+    required this.onTap,
+  });
+
+  @override
+  State<_DCOptionButton> createState() => _DCOptionButtonState();
+}
+
+class _DCOptionButtonState extends State<_DCOptionButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _yAnim;
+  late final Animation<double> _opacityAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _yAnim = Tween<double>(begin: 0.0, end: -80.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _opacityAnim = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _ctrl,
+        curve: const Interval(0.45, 1.0, curve: Curves.easeIn)));
+  }
+
+  @override
+  void didUpdateWidget(_DCOptionButton old) {
+    super.didUpdateWidget(old);
+    if (!old.showXp && widget.showXp) {
+      _ctrl.reset();
+      _ctrl.forward();
+    }
+    if (!widget.showXp) _ctrl.reset();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Color borderColor;
+    Color bgColor;
+    IconData? trailingIcon;
+    Color iconColor = context.textDisabled;
+
+    switch (widget.state) {
+      case _DCOptionState.correct:
+        borderColor = AColors.correct;
+        bgColor = AColors.correct.withOpacity(0.08);
+        trailingIcon = Icons.check_circle;
+        iconColor = AColors.correct;
+      case _DCOptionState.wrong:
+        borderColor = AColors.wrong;
+        bgColor = AColors.wrong.withOpacity(0.07);
+        trailingIcon = Icons.cancel;
+        iconColor = AColors.wrong;
+      case _DCOptionState.selected:
+        borderColor = AColors.selected;
+        bgColor = AColors.selected.withOpacity(0.06);
+      case _DCOptionState.neutral:
+        borderColor = context.borderMid;
+        bgColor = context.bgCard;
+    }
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: borderColor, width: 1.5),
+            ),
+            child: Row(children: [
+              Expanded(child: Text(widget.text,
+                style: GoogleFonts.outfit(
+                  fontSize: 14, color: context.textPrimary))),
+              if (trailingIcon != null)
+                Icon(trailingIcon, color: iconColor, size: 18),
+            ]),
+          ),
+        ),
+        if (widget.showXp)
+          AnimatedBuilder(
+            animation: _ctrl,
+            builder: (_, __) => Positioned(
+              left: 0, right: 0,
+              top: _yAnim.value,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: _opacityAnim.value,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2ECC71),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [BoxShadow(
+                          color: const Color(0xFF2ECC71).withOpacity(0.45),
+                          blurRadius: 10, spreadRadius: 1,
+                        )],
+                      ),
+                      child: Text('+15 XP',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: .4,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
