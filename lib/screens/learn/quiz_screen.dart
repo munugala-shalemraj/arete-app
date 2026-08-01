@@ -65,8 +65,8 @@ class _QuizScreenState extends State<QuizScreen> {
       _checked = true;
       if (isCorrect) _score++;
     });
-    _audioPlayer.stop().then((_) => _audioPlayer.play(
-        AssetSource(isCorrect ? 'audio/correct.wav' : 'audio/wrong.wav')));
+    _audioPlayer.play(
+        AssetSource(isCorrect ? 'audio/correct.wav' : 'audio/wrong.wav'));
   }
 
   void _next() {
@@ -297,6 +297,7 @@ class _QuizScreenState extends State<QuizScreen> {
                         : _selectedOption == opt
                             ? _OptionState.selected
                             : _OptionState.neutral,
+                    showXp: _checked && _selectedOption == opt && q.isCorrect(opt),
                     onTap: () => _selectOption(opt),
                   ),
                 // Explanation
@@ -420,11 +421,12 @@ class _OptionButton extends StatefulWidget {
   final String option;
   final String text;
   final _OptionState state;
+  final bool showXp;
   final VoidCallback onTap;
   const _OptionButton({
     super.key,
     required this.option, required this.text,
-    required this.state, required this.onTap,
+    required this.state, required this.showXp, required this.onTap,
   });
 
   @override
@@ -455,12 +457,11 @@ class _OptionButtonState extends State<_OptionButton>
   @override
   void didUpdateWidget(_OptionButton old) {
     super.didUpdateWidget(old);
-    if (old.state != _OptionState.correct &&
-        widget.state == _OptionState.correct) {
+    if (!old.showXp && widget.showXp) {
       _ctrl.reset();
       _ctrl.forward();
     }
-    if (widget.state == _OptionState.neutral) {
+    if (!widget.showXp) {
       _ctrl.reset();
     }
   }
@@ -534,8 +535,8 @@ class _OptionButtonState extends State<_OptionButton>
             ]),
           ),
         ),
-        // Floating +XP pill — only for the correct option, self-animates
-        if (widget.state == _OptionState.correct)
+        // Floating +XP pill — only when student's own pick was correct
+        if (widget.showXp)
           AnimatedBuilder(
             animation: _ctrl,
             builder: (_, __) => Positioned(
