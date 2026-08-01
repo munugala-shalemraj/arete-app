@@ -22,8 +22,7 @@ class QuizScreen extends StatefulWidget {
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
-class _QuizScreenState extends State<QuizScreen>
-    with TickerProviderStateMixin {
+class _QuizScreenState extends State<QuizScreen> {
   final _quizService = QuizService();
   final _gamService = GamificationService();
   final _audioPlayer = AudioPlayer();
@@ -36,40 +35,17 @@ class _QuizScreenState extends State<QuizScreen>
   bool _loading = true;
   late final DateTime _startedAt;
 
-  // XP float animation
-  late final AnimationController _xpCtrl;
-  late final Animation<double> _xpY;
-  late final Animation<double> _xpOpacity;
-  OverlayEntry? _xpOverlay;
-
-  // GlobalKeys so we can look up each option button's screen position
-  final _optionKeys = <String, GlobalKey>{
-    'a': GlobalKey(), 'b': GlobalKey(),
-    'c': GlobalKey(), 'd': GlobalKey(),
-  };
-
   @override
   void initState() {
     super.initState();
     _startedAt = DateTime.now().toUtc();
     _load();
-
-    _xpCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1100),
-    );
-    _xpY = Tween<double>(begin: 0, end: -88).animate(
-      CurvedAnimation(parent: _xpCtrl, curve: Curves.easeOut));
-    _xpOpacity = Tween<double>(begin: 1, end: 0).animate(
-      CurvedAnimation(
-        parent: _xpCtrl,
-        curve: const Interval(0.45, 1.0, curve: Curves.easeIn)));
+    // Pre-warm audio player so the first sound fires without delay
+    _audioPlayer.setSource(AssetSource('audio/correct.wav'));
   }
 
   @override
   void dispose() {
-    _xpOverlay?.remove();
-    _xpCtrl.dispose();
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -92,69 +68,9 @@ class _QuizScreenState extends State<QuizScreen>
       if (isCorrect) _score++;
     });
     if (isCorrect) {
-      _playCorrectSound();
-      // small delay so the option repaints green before we read its position
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showXpFloat(_selectedOption!);
-      });
+      _audioPlayer.stop().then((_) =>
+          _audioPlayer.play(AssetSource('audio/correct.wav')));
     }
-  }
-
-  Future<void> _playCorrectSound() async {
-    await _audioPlayer.play(AssetSource('audio/correct.wav'));
-  }
-
-  void _showXpFloat(String option) {
-    final key = _optionKeys[option];
-    if (key == null) return;
-    final box = key.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return;
-    // Centre-top of the tapped option button in global coordinates
-    final origin = box.localToGlobal(Offset(box.size.width / 2, 0));
-
-    _xpOverlay?.remove();
-    _xpCtrl.reset();
-
-    _xpOverlay = OverlayEntry(
-      builder: (_) => AnimatedBuilder(
-        animation: _xpCtrl,
-        builder: (_, __) => Positioned(
-          left: origin.dx - 44,
-          top: origin.dy + _xpY.value,
-          child: Opacity(
-            opacity: _xpOpacity.value,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2ECC71),
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2ECC71).withOpacity(0.45),
-                    blurRadius: 10, spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: Text(
-                '+$xpPerCorrectAnswer XP',
-                style: GoogleFonts.outfit(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: .4,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    Overlay.of(context).insert(_xpOverlay!);
-    _xpCtrl.forward().then((_) {
-      _xpOverlay?.remove();
-      _xpOverlay = null;
-    });
   }
 
   void _next() {
@@ -374,7 +290,6 @@ class _QuizScreenState extends State<QuizScreen>
                 const SizedBox(height: 28),
                 for (final opt in ['a', 'b', 'c', 'd'])
                   _OptionButton(
-                    key: _optionKeys[opt],
                     option: opt,
                     text: q.optionText(opt),
                     state: _checked
@@ -505,7 +420,7 @@ class _QuizScreenState extends State<QuizScreen>
 
 enum _OptionState { neutral, selected, correct, wrong }
 
-class _OptionButton extends StatelessWidget {
+class _OptionButton extends StatefulWidget {
   final String option;
   final String text;
   final _OptionState state;
@@ -516,9 +431,52 @@ class _OptionButton extends StatelessWidget {
     required this.state, required this.onTap,
   });
 
-  // Colour-blind safe: blue = correct, orange = wrong, gold = selected
+  @override
+  State<_OptionButton> createState() => _OptionButtonState();
+}
+
+class _OptionButtonState extends State<_OptionButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _yAnim;
+  late final Animation<double> _opacityAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _yAnim = Tween<double>(begin: 0.0, end: -80.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _opacityAnim = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _ctrl,
+        curve: const Interval(0.45, 1.0, curve: Curves.easeIn)));
+  }
+
+  @override
+  void didUpdateWidget(_OptionButton old) {
+    super.didUpdateWidget(old);
+    if (old.state != _OptionState.correct &&
+        widget.state == _OptionState.correct) {
+      _ctrl.reset();
+      _ctrl.forward();
+    }
+    if (widget.state == _OptionState.neutral) {
+      _ctrl.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
   Color _accent(BuildContext ctx) {
-    switch (state) {
+    switch (widget.state) {
       case _OptionState.correct:  return AColors.correct;
       case _OptionState.wrong:    return AColors.wrong;
       case _OptionState.selected: return AColors.selected;
@@ -529,56 +487,94 @@ class _OptionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _accent(context);
-    final isNeutral = state == _OptionState.neutral;
-    final bg = isNeutral
-        ? context.bgSurface
-        : accent.withOpacity(0.10);
+    final isNeutral = widget.state == _OptionState.neutral;
+    final bg = isNeutral ? context.bgSurface : accent.withOpacity(0.10);
     final textCol = isNeutral ? context.textSecondary : accent;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: accent,
-            width: (state == _OptionState.correct ||
-                    state == _OptionState.wrong) ? 2 : 1),
-        ),
-        child: Row(children: [
-          // Option badge — shows letter normally, icon after check
-          Container(
-            width: 30, height: 30,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: accent.withOpacity(0.15),
-              border: Border.all(color: accent),
+              color: bg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: accent,
+                width: (widget.state == _OptionState.correct ||
+                        widget.state == _OptionState.wrong) ? 2 : 1),
             ),
-            child: Center(
-              child: state == _OptionState.correct
-                  ? Icon(Icons.check, color: AColors.correct, size: 16)
-                  : state == _OptionState.wrong
-                      ? Icon(Icons.close, color: AColors.wrong, size: 16)
-                      : Text(option.toUpperCase(),
-                          style: GoogleFonts.outfit(
-                            fontSize: 13, fontWeight: FontWeight.w700,
-                            color: textCol)),
+            child: Row(children: [
+              Container(
+                width: 30, height: 30,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: accent.withOpacity(0.15),
+                  border: Border.all(color: accent),
+                ),
+                child: Center(
+                  child: widget.state == _OptionState.correct
+                      ? Icon(Icons.check, color: AColors.correct, size: 16)
+                      : widget.state == _OptionState.wrong
+                          ? Icon(Icons.close, color: AColors.wrong, size: 16)
+                          : Text(widget.option.toUpperCase(),
+                              style: GoogleFonts.outfit(
+                                fontSize: 13, fontWeight: FontWeight.w700,
+                                color: textCol)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text(widget.text,
+                style: GoogleFonts.outfit(
+                  fontSize: 14, color: textCol, height: 1.35))),
+              if (widget.state == _OptionState.correct)
+                const Icon(Icons.check_circle, color: AColors.correct, size: 20),
+              if (widget.state == _OptionState.wrong)
+                const Icon(Icons.cancel, color: AColors.wrong, size: 20),
+            ]),
+          ),
+        ),
+        // Floating +XP pill — only for the correct option, self-animates
+        if (widget.state == _OptionState.correct)
+          AnimatedBuilder(
+            animation: _ctrl,
+            builder: (_, __) => Positioned(
+              left: 0, right: 0,
+              top: _yAnim.value,
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: _opacityAnim.value,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2ECC71),
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [BoxShadow(
+                          color: const Color(0xFF2ECC71).withOpacity(0.45),
+                          blurRadius: 10, spreadRadius: 1,
+                        )],
+                      ),
+                      child: Text('+$xpPerCorrectAnswer XP',
+                        style: GoogleFonts.outfit(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: .4,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(child: Text(text,
-            style: GoogleFonts.outfit(
-              fontSize: 14, color: textCol, height: 1.35))),
-          if (state == _OptionState.correct)
-            const Icon(Icons.check_circle, color: AColors.correct, size: 20),
-          if (state == _OptionState.wrong)
-            const Icon(Icons.cancel, color: AColors.wrong, size: 20),
-        ]),
-      ),
+      ],
     );
   }
 }
