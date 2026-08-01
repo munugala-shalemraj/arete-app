@@ -40,8 +40,6 @@ class _QuizScreenState extends State<QuizScreen> {
     super.initState();
     _startedAt = DateTime.now().toUtc();
     _load();
-    // Pre-warm audio player so the first sound fires without delay
-    _audioPlayer.setSource(AssetSource('audio/correct.wav'));
   }
 
   @override
@@ -67,10 +65,8 @@ class _QuizScreenState extends State<QuizScreen> {
       _checked = true;
       if (isCorrect) _score++;
     });
-    if (isCorrect) {
-      _audioPlayer.stop().then((_) =>
-          _audioPlayer.play(AssetSource('audio/correct.wav')));
-    }
+    _audioPlayer.stop().then((_) => _audioPlayer.play(
+        AssetSource(isCorrect ? 'audio/correct.wav' : 'audio/wrong.wav')));
   }
 
   void _next() {
