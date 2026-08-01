@@ -5,7 +5,7 @@ class QuizService {
   final _client = Supabase.instance.client;
 
   Future<List<QuizQuestion>> fetchQuestionsForLesson(int lessonId,
-      {int pickCount = 5}) async {
+      {int pickCount = 10}) async {
     final data = await _client
         .from('quiz_questions')
         .select()
