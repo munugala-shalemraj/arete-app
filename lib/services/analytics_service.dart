@@ -21,10 +21,13 @@ class AnalyticsService {
   }) async {
     final now = DateTime.now().toUtc();
     final duration = now.difference(startedAt).inSeconds;
-    await _client.from('learning_sessions').update({
-      'ended_at': now.toIso8601String(),
-      'duration_seconds': duration,
-    }).eq('id', sessionId);
+    await _client
+        .from('learning_sessions')
+        .update({
+          'ended_at': now.toIso8601String(),
+          'duration_seconds': duration,
+        })
+        .eq('id', sessionId);
   }
 
   Future<void> submitFeedback({
@@ -39,6 +42,45 @@ class AnalyticsService {
       'imi_score': imiScore,
       'open_feedback': openFeedback,
     });
+  }
+
+  Future<void> submitKnowledgeAssessment({
+    required String userId,
+    required String assessmentType,
+    required int score,
+    required int maxScore,
+  }) async {
+    if (assessmentType != 'pre' && assessmentType != 'post') {
+      throw ArgumentError.value(
+        assessmentType,
+        'assessmentType',
+        'Must be pre or post',
+      );
+    }
+    if (maxScore <= 0 || score < 0 || score > maxScore) {
+      throw ArgumentError('Assessment score must be between 0 and maxScore.');
+    }
+
+    await _client.from('knowledge_assessments').upsert({
+      'user_id': userId,
+      'assessment_type': assessmentType,
+      'score': score,
+      'max_score': maxScore,
+      'submitted_at': DateTime.now().toUtc().toIso8601String(),
+    }, onConflict: 'user_id,assessment_type');
+  }
+
+  Future<bool> hasKnowledgeAssessment({
+    required String userId,
+    required String assessmentType,
+  }) async {
+    final rows = await _client
+        .from('knowledge_assessments')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('assessment_type', assessmentType)
+        .limit(1);
+    return (rows as List).isNotEmpty;
   }
 
   Future<void> submitImi({

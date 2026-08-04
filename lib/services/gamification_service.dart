@@ -2,10 +2,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/badge_model.dart';
 import '../models/skill_mastery.dart';
 import '../models/user_profile.dart';
+import '../utils/learning_metrics.dart';
 
 const int xpPerCorrectAnswer = 10;
 const int xpPerfectQuizBonus = 25;
-const int xpPerLevel = 100;
 
 // Maps lesson id → primary skill name for mastery tracking
 const Map<int, String> lessonSkillMap = {
@@ -31,7 +31,7 @@ class GamificationService {
     required UserProfile currentProfile,
   }) async {
     final newXp = currentProfile.xp + xpEarned;
-    final newLevel = (newXp ~/ xpPerLevel) + 1;
+    final newLevel = levelForXp(newXp);
 
     final data = await _client
         .from('profiles')
@@ -60,8 +60,11 @@ class GamificationService {
     int newStreak = (data['streak_days'] as num?)?.toInt() ?? 0;
 
     if (lastActive != null) {
-      final lastDate =
-          DateTime(lastActive.year, lastActive.month, lastActive.day);
+      final lastDate = DateTime(
+        lastActive.year,
+        lastActive.month,
+        lastActive.day,
+      );
       final diff = todayDate.difference(lastDate).inDays;
       if (diff == 1) {
         newStreak += 1;
@@ -185,7 +188,7 @@ class GamificationService {
       });
     } else {
       final old = (existing.first['mastery_score'] as num).toDouble();
-      final blended = (old * 0.7 + quizScore * 0.3).clamp(0.0, 1.0);
+      final blended = blendMastery(current: old, latestQuizScore: quizScore);
       await _client
           .from('skill_mastery')
           .update({
@@ -199,11 +202,10 @@ class GamificationService {
 
   // ── LEADERBOARD ─────────────────────────────────────────────
   Future<List<Map<String, dynamic>>> fetchLeaderboard({int limit = 10}) async {
-    final data = await _client
-        .from('profiles')
-        .select('username, display_name, xp, level, streak_days')
-        .order('xp', ascending: false)
-        .limit(limit);
+    final data = await _client.rpc(
+      'get_leaderboard',
+      params: {'row_limit': limit},
+    );
     return List<Map<String, dynamic>>.from(data as List);
   }
 
@@ -214,7 +216,7 @@ class GamificationService {
         .select()
         .eq('user_id', userId)
         .limit(1);
-    return (data as List).isNotEmpty ? data.first as Map<String, dynamic> : null;
+    return data.isNotEmpty ? data.first : null;
   }
 
   Future<void> upsertGoal({
@@ -228,10 +230,10 @@ class GamificationService {
         .eq('user_id', userId)
         .limit(1);
     if ((existing as List).isNotEmpty) {
-      await _client.from('user_goals').update({
-        'skill_name': skillName,
-        'target_pct': targetPct,
-      }).eq('user_id', userId);
+      await _client
+          .from('user_goals')
+          .update({'skill_name': skillName, 'target_pct': targetPct})
+          .eq('user_id', userId);
     } else {
       await _client.from('user_goals').insert({
         'user_id': userId,
@@ -243,20 +245,36 @@ class GamificationService {
 
   // ── ANALYTICS ───────────────────────────────────────────────
   Future<Map<String, dynamic>> fetchAnalyticsSummary() async {
+    final authorised = await _client.rpc('is_researcher') as bool? ?? false;
+    if (!authorised) {
+      throw StateError(
+        'Researcher access is required for aggregate analytics.',
+      );
+    }
     final profiles = await _client
         .from('profiles')
         .select('xp, level, streak_days');
     final feedback = await _client
         .from('feedback_responses')
-        .select('sus_score, imi_score');
+        .select('sus_score');
     final attempts = await _client
         .from('quiz_attempts')
         .select('lesson_id, score, max_score');
+    final assessments = await _client
+        .from('knowledge_assessments')
+        .select('user_id, assessment_type, score, max_score, submitted_at');
+    final imi = await _client
+        .from('imi_responses')
+        .select(
+          'interest_enjoyment, perceived_competence, perceived_choice, relatedness',
+        );
 
     return {
       'profiles': profiles as List,
       'feedback': feedback as List,
       'attempts': attempts as List,
+      'assessments': assessments as List,
+      'imi': imi as List,
     };
   }
 

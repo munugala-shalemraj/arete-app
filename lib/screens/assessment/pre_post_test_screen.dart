@@ -34,7 +34,12 @@ const _questions = [
   ),
   _TestQ(
     q: 'Which NumPy function creates an array of zeros with shape (3, 4)?',
-    opts: ['np.zeros(3, 4)', 'np.zeros((3, 4))', 'np.empty(3, 4)', 'np.array(0, (3,4))'],
+    opts: [
+      'np.zeros(3, 4)',
+      'np.zeros((3, 4))',
+      'np.empty(3, 4)',
+      'np.array(0, (3,4))',
+    ],
     correct: 1,
   ),
   _TestQ(
@@ -49,12 +54,22 @@ const _questions = [
   ),
   _TestQ(
     q: 'Which Pandas method removes duplicate rows from a DataFrame?',
-    opts: ['df.remove_duplicates()', 'df.unique()', 'df.drop_duplicates()', 'df.dedupe()'],
+    opts: [
+      'df.remove_duplicates()',
+      'df.unique()',
+      'df.drop_duplicates()',
+      'df.dedupe()',
+    ],
     correct: 2,
   ),
   _TestQ(
     q: 'What does the slice [1:4] return from the list [10, 20, 30, 40, 50]?',
-    opts: ['[10, 20, 30]', '[20, 30, 40]', '[20, 30, 40, 50]', '[10, 20, 30, 40]'],
+    opts: [
+      '[10, 20, 30]',
+      '[20, 30, 40]',
+      '[20, 30, 40, 50]',
+      '[10, 20, 30, 40]',
+    ],
     correct: 1,
   ),
   _TestQ(
@@ -126,14 +141,11 @@ class _PrePostTestScreenState extends State<PrePostTestScreen> {
   Future<void> _save() async {
     final userId = context.read<AuthProvider>().user?.id;
     if (userId == null) return;
-    final score = _score / _questions.length;
-    await AnalyticsService().submitFeedback(
+    await AnalyticsService().submitKnowledgeAssessment(
       userId: userId,
-      susScore: null,
-      imiScore: score,
-      openFeedback: widget.isPostTest
-          ? 'post_test_score:$score'
-          : 'pre_test_score:$score',
+      assessmentType: widget.isPostTest ? 'post' : 'pre',
+      score: _score,
+      maxScore: _questions.length,
     );
   }
 
@@ -151,7 +163,10 @@ class _PrePostTestScreenState extends State<PrePostTestScreen> {
         title: Text(
           widget.isPostTest ? 'Post-Test' : 'Pre-Test',
           style: GoogleFonts.outfit(
-            fontSize: 18, fontWeight: FontWeight.w700, color: context.textPrimary),
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: context.textPrimary,
+          ),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
@@ -163,128 +178,157 @@ class _PrePostTestScreenState extends State<PrePostTestScreen> {
           ),
         ),
       ),
-      body: Column(children: [
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-                Text(
-                  'Q${_currentIndex + 1} of ${_questions.length}',
-                  style: GoogleFonts.outfit(
-                    fontSize: 13, color: const Color(0xFFC9A84C),
-                    fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 12),
-                Text(q.q,
-                  style: GoogleFonts.outfit(
-                    fontSize: 17, fontWeight: FontWeight.w700,
-                    color: context.textPrimary, height: 1.4),
-                ),
-                const SizedBox(height: 24),
-                ...q.opts.asMap().entries.map((e) {
-                  final i = e.key;
-                  final text = e.value;
-                  Color border = context.borderMid;
-                  Color bg = context.bgSurface;
-                  Color tc = context.textSecondary;
-
-                  if (_answered) {
-                    if (i == q.correct) {
-                      border = const Color(0xFF4CAF50);
-                      bg = const Color(0xFF4CAF50).withOpacity(0.1);
-                      tc = const Color(0xFF4CAF50);
-                    } else if (_selected == i) {
-                      border = Colors.redAccent;
-                      bg = Colors.redAccent.withOpacity(0.1);
-                      tc = Colors.redAccent;
-                    }
-                  } else if (_selected == i) {
-                    border = const Color(0xFFC9A84C);
-                    bg = const Color(0xFFC9A84C).withOpacity(0.08);
-                    tc = const Color(0xFFC9A84C);
-                  }
-
-                  return GestureDetector(
-                    onTap: () => _select(i),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: bg,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: border),
-                      ),
-                      child: Row(children: [
-                        Container(
-                          width: 28, height: 28,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: border.withOpacity(0.15),
-                            border: Border.all(color: border),
-                          ),
-                          child: Center(child: Text(
-                            String.fromCharCode(65 + i),
-                            style: GoogleFonts.outfit(
-                              fontSize: 12, fontWeight: FontWeight.w700,
-                              color: tc),
-                          )),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(child: Text(text,
-                          style: GoogleFonts.outfit(
-                            fontSize: 14, color: tc, height: 1.3),
-                        )),
-                      ]),
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(22, 0, 22, 28),
-          child: SizedBox(
-            width: double.infinity, height: 50,
-            child: _answered
-                ? ElevatedButton(
-                    onPressed: _next,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC9A84C),
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: Text(
-                      _currentIndex < _questions.length - 1
-                          ? 'Next Question →'
-                          : 'Finish Test',
-                      style: GoogleFonts.outfit(
-                        fontSize: 15, fontWeight: FontWeight.w700),
-                    ),
-                  )
-                : ElevatedButton(
-                    onPressed: _selected != null ? _confirm : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _selected != null
-                          ? const Color(0xFF4F8EF7)
-                          : context.bgSurface,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: Text('Confirm Answer',
-                      style: GoogleFonts.outfit(
-                        fontSize: 15, fontWeight: FontWeight.w700),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  Text(
+                    'Q${_currentIndex + 1} of ${_questions.length}',
+                    style: GoogleFonts.outfit(
+                      fontSize: 13,
+                      color: const Color(0xFFC9A84C),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  Text(
+                    q.q,
+                    style: GoogleFonts.outfit(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: context.textPrimary,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ...q.opts.asMap().entries.map((e) {
+                    final i = e.key;
+                    final text = e.value;
+                    Color border = context.borderMid;
+                    Color bg = context.bgSurface;
+                    Color tc = context.textSecondary;
+
+                    if (_answered) {
+                      if (i == q.correct) {
+                        border = const Color(0xFF4CAF50);
+                        bg = const Color(0xFF4CAF50).withOpacity(0.1);
+                        tc = const Color(0xFF4CAF50);
+                      } else if (_selected == i) {
+                        border = Colors.redAccent;
+                        bg = Colors.redAccent.withOpacity(0.1);
+                        tc = Colors.redAccent;
+                      }
+                    } else if (_selected == i) {
+                      border = const Color(0xFFC9A84C);
+                      bg = const Color(0xFFC9A84C).withOpacity(0.08);
+                      tc = const Color(0xFFC9A84C);
+                    }
+
+                    return GestureDetector(
+                      onTap: () => _select(i),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: bg,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: border),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: border.withOpacity(0.15),
+                                border: Border.all(color: border),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  String.fromCharCode(65 + i),
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    color: tc,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                text,
+                                style: GoogleFonts.outfit(
+                                  fontSize: 14,
+                                  color: tc,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
           ),
-        ),
-      ]),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 0, 22, 28),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: _answered
+                  ? ElevatedButton(
+                      onPressed: _next,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFC9A84C),
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        _currentIndex < _questions.length - 1
+                            ? 'Next Question →'
+                            : 'Finish Test',
+                        style: GoogleFonts.outfit(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )
+                  : ElevatedButton(
+                      onPressed: _selected != null ? _confirm : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _selected != null
+                            ? const Color(0xFF4F8EF7)
+                            : context.bgSurface,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        'Confirm Answer',
+                        style: GoogleFonts.outfit(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -300,8 +344,8 @@ class _ResultView extends StatelessWidget {
     final color = pct >= 0.7
         ? const Color(0xFF4CAF50)
         : pct >= 0.4
-            ? const Color(0xFFC9A84C)
-            : Colors.redAccent;
+        ? const Color(0xFFC9A84C)
+        : Colors.redAccent;
 
     return Scaffold(
       backgroundColor: context.bgPrimary,
@@ -313,7 +357,8 @@ class _ResultView extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 130, height: 130,
+                  width: 130,
+                  height: 130,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: color.withOpacity(0.1),
@@ -322,42 +367,61 @@ class _ResultView extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('$score/$total',
+                      Text(
+                        '$score/$total',
                         style: GoogleFonts.outfit(
-                          fontSize: 36, fontWeight: FontWeight.w900, color: color),
+                          fontSize: 36,
+                          fontWeight: FontWeight.w900,
+                          color: color,
+                        ),
                       ),
-                      Text('${(pct * 100).toInt()}%',
+                      Text(
+                        '${(pct * 100).toInt()}%',
                         style: GoogleFonts.outfit(
-                          fontSize: 14, color: context.textSecondary),
+                          fontSize: 14,
+                          color: context.textSecondary,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
-                Text('Assessment Complete',
+                Text(
+                  'Assessment Complete',
                   style: GoogleFonts.outfit(
-                    fontSize: 24, fontWeight: FontWeight.w800, color: context.textPrimary),
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: context.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Your result has been saved for evaluation.\nThank you for participating.',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(fontSize: 14, color: context.textHint),
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    color: context.textHint,
+                  ),
                 ),
                 const SizedBox(height: 36),
                 SizedBox(
-                  width: double.infinity, height: 50,
+                  width: double.infinity,
+                  height: 50,
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFC9A84C),
                       foregroundColor: Colors.black,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                     ),
-                    child: Text('Back to Home',
+                    child: Text(
+                      'Back to Home',
                       style: GoogleFonts.outfit(
-                        fontSize: 15, fontWeight: FontWeight.w700),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),

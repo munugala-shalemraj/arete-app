@@ -17,6 +17,8 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   List _profiles = [];
   List _feedback = [];
   List _attempts = [];
+  List _assessments = [];
+  String? _error;
 
   @override
   void initState() {
@@ -25,14 +27,27 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
-    final data = await _service.fetchAnalyticsSummary();
     setState(() {
-      _profiles = data['profiles'] as List;
-      _feedback = data['feedback'] as List;
-      _attempts = data['attempts'] as List;
-      _loading = false;
+      _loading = true;
+      _error = null;
     });
+    try {
+      final data = await _service.fetchAnalyticsSummary();
+      if (!mounted) return;
+      setState(() {
+        _profiles = data['profiles'] as List;
+        _feedback = data['feedback'] as List;
+        _attempts = data['attempts'] as List;
+        _assessments = data['assessments'] as List;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Researcher access is required to view aggregate study data.';
+        _loading = false;
+      });
+    }
   }
 
   @override
@@ -46,9 +61,14 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
           icon: Icon(Icons.arrow_back, color: context.textPrimary),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text('Analytics Dashboard',
+        title: Text(
+          'Analytics Dashboard',
           style: GoogleFonts.outfit(
-            fontSize: 20, fontWeight: FontWeight.w700, color: context.textPrimary)),
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: context.textPrimary,
+          ),
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.refresh, color: context.textSecondary),
@@ -57,8 +77,25 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation(Color(0xFFFFD700))))
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation(Color(0xFFFFD700)),
+              ),
+            )
+          : _error != null
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(
+                    fontSize: 15,
+                    color: context.textSecondary,
+                  ),
+                ),
+              ),
+            )
           : RefreshIndicator(
               onRefresh: _load,
               color: const Color(0xFFFFD700),
@@ -89,9 +126,14 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
     );
   }
 
-  Widget _sectionHeader(String title) => Text(title,
+  Widget _sectionHeader(String title) => Text(
+    title,
     style: GoogleFonts.outfit(
-      fontSize: 16, fontWeight: FontWeight.w700, color: context.textPrimary));
+      fontSize: 16,
+      fontWeight: FontWeight.w700,
+      color: context.textPrimary,
+    ),
+  );
 
   Widget _summaryRow() {
     final susList = _feedback
@@ -102,31 +144,46 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
         ? 0.0
         : susList.reduce((a, b) => a + b) / susList.length;
 
-    final testList = _feedback
-        .where((f) => f['imi_score'] != null)
-        .map((f) => (f['imi_score'] as num).toDouble())
+    final testList = _assessments
+        .where(
+          (a) =>
+              (a['max_score'] as num?) != null && (a['max_score'] as num) > 0,
+        )
+        .map(
+          (a) =>
+              (a['score'] as num).toDouble() /
+              (a['max_score'] as num).toDouble(),
+        )
         .toList();
     final avgTest = testList.isEmpty
         ? 0.0
         : testList.reduce((a, b) => a + b) / testList.length;
 
-    final uniqueLessons = _attempts
-        .map((a) => a['lesson_id'])
-        .toSet()
-        .length;
+    final uniqueLessons = _attempts.map((a) => a['lesson_id']).toSet().length;
 
-    return Row(children: [
-      _StatTile('Users', '${_profiles.length}', const Color(0xFF4B8BBE)),
-      const SizedBox(width: 10),
-      _StatTile('Avg SUS', '${avgSus.toStringAsFixed(1)}',
-        const Color(0xFF00D4AA)),
-      const SizedBox(width: 10),
-      _StatTile('Avg Test', '${(avgTest * 100).toStringAsFixed(0)}%',
-        const Color(0xFFFFD700)),
-      const SizedBox(width: 10),
-      _StatTile('Lessons\nAttempted', '$uniqueLessons',
-        const Color(0xFF9B59B6)),
-    ]);
+    return Row(
+      children: [
+        _StatTile('Users', '${_profiles.length}', const Color(0xFF4B8BBE)),
+        const SizedBox(width: 10),
+        _StatTile(
+          'Avg SUS',
+          avgSus.toStringAsFixed(1),
+          const Color(0xFF00D4AA),
+        ),
+        const SizedBox(width: 10),
+        _StatTile(
+          'Avg Test',
+          '${(avgTest * 100).toStringAsFixed(0)}%',
+          const Color(0xFFFFD700),
+        ),
+        const SizedBox(width: 10),
+        _StatTile(
+          'Lessons\nAttempted',
+          '$uniqueLessons',
+          const Color(0xFF9B59B6),
+        ),
+      ],
+    );
   }
 
   Widget _susChart() {
@@ -141,186 +198,282 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
     final labels = ['<50\nPoor', '50-70\nOK', '70-85\nGood', '85+\nExcellent'];
     final counts = [0, 0, 0, 0];
     for (final s in susList) {
-      if (s < 50) counts[0]++;
-      else if (s < 70) counts[1]++;
-      else if (s < 85) counts[2]++;
-      else counts[3]++;
+      if (s < 50)
+        counts[0]++;
+      else if (s < 70)
+        counts[1]++;
+      else if (s < 85)
+        counts[2]++;
+      else
+        counts[3]++;
     }
-    final colors = [Colors.redAccent, const Color(0xFFFFD700),
-      const Color(0xFF4B8BBE), const Color(0xFF00D4AA)];
+    final colors = [
+      Colors.redAccent,
+      const Color(0xFFFFD700),
+      const Color(0xFF4B8BBE),
+      const Color(0xFF00D4AA),
+    ];
 
     return _chartCard(
       height: 200,
-      child: BarChart(BarChartData(
-        alignment: BarChartAlignment.spaceAround,
-        maxY: (counts.reduce((a, b) => a > b ? a : b) + 1).toDouble(),
-        barGroups: List.generate(4, (i) => BarChartGroupData(
-          x: i,
-          barRods: [BarChartRodData(
-            toY: counts[i].toDouble(),
-            color: colors[i],
-            width: 36,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-          )],
-        )),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: (v, _) => Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(labels[v.toInt()],
-                textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(
-                  fontSize: 9, color: context.textHint)),
+      child: BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: (counts.reduce((a, b) => a > b ? a : b) + 1).toDouble(),
+          barGroups: List.generate(
+            4,
+            (i) => BarChartGroupData(
+              x: i,
+              barRods: [
+                BarChartRodData(
+                  toY: counts[i].toDouble(),
+                  color: colors[i],
+                  width: 36,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(6),
+                  ),
+                ),
+              ],
             ),
-          )),
-          leftTitles: AxisTitles(sideTitles: SideTitles(
-            showTitles: true, reservedSize: 28,
-            getTitlesWidget: (v, _) => Text('${v.toInt()}',
-              style: GoogleFonts.outfit(fontSize: 10, color: context.textDisabled)),
-          )),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false)),
+          ),
+          titlesData: FlTitlesData(
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (v, _) => Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    labels[v.toInt()],
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      fontSize: 9,
+                      color: context.textHint,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 28,
+                getTitlesWidget: (v, _) => Text(
+                  '${v.toInt()}',
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    color: context.textDisabled,
+                  ),
+                ),
+              ),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+          ),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (_) =>
+                FlLine(color: context.borderMid, strokeWidth: 1),
+          ),
+          borderData: FlBorderData(show: false),
         ),
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          getDrawingHorizontalLine: (_) =>
-              FlLine(color: context.borderMid, strokeWidth: 1),
-        ),
-        borderData: FlBorderData(show: false),
-      )),
+      ),
     );
   }
 
   Widget _testScoresChart() {
-    final scores = _feedback
-        .where((f) => f['imi_score'] != null)
-        .map((f) => (f['imi_score'] as num).toDouble())
+    final scores = _assessments
+        .where(
+          (a) =>
+              (a['max_score'] as num?) != null && (a['max_score'] as num) > 0,
+        )
+        .map(
+          (a) =>
+              (a['score'] as num).toDouble() /
+              (a['max_score'] as num).toDouble(),
+        )
         .toList();
 
     if (scores.isEmpty) return _emptyState('No knowledge test attempts yet');
 
-    final spots = scores.asMap().entries.map((e) =>
-      FlSpot(e.key.toDouble(), e.value * 100)).toList();
+    final spots = scores
+        .asMap()
+        .entries
+        .map((e) => FlSpot(e.key.toDouble(), e.value * 100))
+        .toList();
 
     return _chartCard(
       height: 180,
-      child: LineChart(LineChartData(
-        minY: 0, maxY: 100,
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
-            color: const Color(0xFFFFD700),
-            barWidth: 2.5,
-            dotData: FlDotData(
-              getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
-                radius: 4,
-                color: const Color(0xFFFFD700),
-                strokeColor: context.bgPrimary,
-                strokeWidth: 2,
+      child: LineChart(
+        LineChartData(
+          minY: 0,
+          maxY: 100,
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              color: const Color(0xFFFFD700),
+              barWidth: 2.5,
+              dotData: FlDotData(
+                getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
+                  radius: 4,
+                  color: const Color(0xFFFFD700),
+                  strokeColor: context.bgPrimary,
+                  strokeWidth: 2,
+                ),
+              ),
+              belowBarData: BarAreaData(
+                show: true,
+                color: const Color(0xFFFFD700).withOpacity(0.08),
               ),
             ),
-            belowBarData: BarAreaData(
-              show: true,
-              color: const Color(0xFFFFD700).withOpacity(0.08),
+          ],
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 32,
+                getTitlesWidget: (v, _) => Text(
+                  '${v.toInt()}%',
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    color: context.textDisabled,
+                  ),
+                ),
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (v, _) => Text(
+                  'P${v.toInt() + 1}',
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    color: context.textHint,
+                  ),
+                ),
+              ),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
             ),
           ),
-        ],
-        titlesData: FlTitlesData(
-          leftTitles: AxisTitles(sideTitles: SideTitles(
-            showTitles: true, reservedSize: 32,
-            getTitlesWidget: (v, _) => Text('${v.toInt()}%',
-              style: GoogleFonts.outfit(fontSize: 10, color: context.textDisabled)),
-          )),
-          bottomTitles: AxisTitles(sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: (v, _) => Text('P${v.toInt() + 1}',
-              style: GoogleFonts.outfit(fontSize: 10, color: context.textHint)),
-          )),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false)),
+          gridData: FlGridData(
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (_) =>
+                FlLine(color: context.borderMid, strokeWidth: 1),
+          ),
+          borderData: FlBorderData(show: false),
         ),
-        gridData: FlGridData(
-          drawVerticalLine: false,
-          getDrawingHorizontalLine: (_) =>
-              FlLine(color: context.borderMid, strokeWidth: 1),
-        ),
-        borderData: FlBorderData(show: false),
-      )),
+      ),
     );
   }
 
   Widget _xpChart() {
     if (_profiles.isEmpty) return _emptyState('No user data yet');
 
-    final xpValues = _profiles
-        .map((p) => (p['xp'] as num?)?.toDouble() ?? 0.0)
-        .toList()
-      ..sort();
+    final xpValues =
+        _profiles.map((p) => (p['xp'] as num?)?.toDouble() ?? 0.0).toList()
+          ..sort();
 
     final groups = <String, int>{
-      '0-50': 0, '51-100': 0, '101-200': 0, '201-500': 0, '500+': 0,
+      '0-50': 0,
+      '51-100': 0,
+      '101-200': 0,
+      '201-500': 0,
+      '500+': 0,
     };
     for (final xp in xpValues) {
-      if (xp <= 50) groups['0-50'] = groups['0-50']! + 1;
-      else if (xp <= 100) groups['51-100'] = groups['51-100']! + 1;
-      else if (xp <= 200) groups['101-200'] = groups['101-200']! + 1;
-      else if (xp <= 500) groups['201-500'] = groups['201-500']! + 1;
-      else groups['500+'] = groups['500+']! + 1;
+      if (xp <= 50)
+        groups['0-50'] = groups['0-50']! + 1;
+      else if (xp <= 100)
+        groups['51-100'] = groups['51-100']! + 1;
+      else if (xp <= 200)
+        groups['101-200'] = groups['101-200']! + 1;
+      else if (xp <= 500)
+        groups['201-500'] = groups['201-500']! + 1;
+      else
+        groups['500+'] = groups['500+']! + 1;
     }
     final keys = groups.keys.toList();
 
     return _chartCard(
       height: 190,
-      child: BarChart(BarChartData(
-        alignment: BarChartAlignment.spaceAround,
-        maxY: (groups.values.reduce((a, b) => a > b ? a : b) + 1).toDouble(),
-        barGroups: List.generate(keys.length, (i) => BarChartGroupData(
-          x: i,
-          barRods: [BarChartRodData(
-            toY: groups[keys[i]]!.toDouble(),
-            gradient: const LinearGradient(
-              colors: [Color(0xFF4B8BBE), Color(0xFF9B59B6)],
-              begin: Alignment.bottomCenter,
-              end: Alignment.topCenter,
+      child: BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: (groups.values.reduce((a, b) => a > b ? a : b) + 1).toDouble(),
+          barGroups: List.generate(
+            keys.length,
+            (i) => BarChartGroupData(
+              x: i,
+              barRods: [
+                BarChartRodData(
+                  toY: groups[keys[i]]!.toDouble(),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF4B8BBE), Color(0xFF9B59B6)],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                  ),
+                  width: 32,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(6),
+                  ),
+                ),
+              ],
             ),
-            width: 32,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-          )],
-        )),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: (v, _) => Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(keys[v.toInt()],
-                style: GoogleFonts.outfit(
-                  fontSize: 9, color: context.textHint)),
+          ),
+          titlesData: FlTitlesData(
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (v, _) => Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    keys[v.toInt()],
+                    style: GoogleFonts.outfit(
+                      fontSize: 9,
+                      color: context.textHint,
+                    ),
+                  ),
+                ),
+              ),
             ),
-          )),
-          leftTitles: AxisTitles(sideTitles: SideTitles(
-            showTitles: true, reservedSize: 28,
-            getTitlesWidget: (v, _) => Text('${v.toInt()}',
-              style: GoogleFonts.outfit(fontSize: 10, color: context.textDisabled)),
-          )),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false)),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 28,
+                getTitlesWidget: (v, _) => Text(
+                  '${v.toInt()}',
+                  style: GoogleFonts.outfit(
+                    fontSize: 10,
+                    color: context.textDisabled,
+                  ),
+                ),
+              ),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+          ),
+          gridData: FlGridData(
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (_) =>
+                FlLine(color: context.borderMid, strokeWidth: 1),
+          ),
+          borderData: FlBorderData(show: false),
         ),
-        gridData: FlGridData(
-          drawVerticalLine: false,
-          getDrawingHorizontalLine: (_) =>
-              FlLine(color: context.borderMid, strokeWidth: 1),
-        ),
-        borderData: FlBorderData(show: false),
-      )),
+      ),
     );
   }
 
@@ -337,64 +490,92 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
 
     return _chartCard(
       height: 200,
-      child: BarChart(BarChartData(
-        alignment: BarChartAlignment.spaceAround,
-        maxY: (sorted.map((e) => e.value).reduce((a, b) => a > b ? a : b) + 1)
-            .toDouble(),
-        barGroups: sorted.asMap().entries.map((e) => BarChartGroupData(
-          x: e.key,
-          barRods: [BarChartRodData(
-            toY: e.value.value.toDouble(),
-            color: const Color(0xFF00D4AA),
-            width: 18,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(5)),
-          )],
-        )).toList(),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: (v, _) {
-              final idx = v.toInt();
-              if (idx < 0 || idx >= sorted.length) return const SizedBox();
-              return Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text('L${sorted[idx].key}',
+      child: BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: (sorted.map((e) => e.value).reduce((a, b) => a > b ? a : b) + 1)
+              .toDouble(),
+          barGroups: sorted
+              .asMap()
+              .entries
+              .map(
+                (e) => BarChartGroupData(
+                  x: e.key,
+                  barRods: [
+                    BarChartRodData(
+                      toY: e.value.value.toDouble(),
+                      color: const Color(0xFF00D4AA),
+                      width: 18,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(5),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+              .toList(),
+          titlesData: FlTitlesData(
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (v, _) {
+                  final idx = v.toInt();
+                  if (idx < 0 || idx >= sorted.length) return const SizedBox();
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'L${sorted[idx].key}',
+                      style: GoogleFonts.outfit(
+                        fontSize: 9,
+                        color: context.textHint,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 28,
+                getTitlesWidget: (v, _) => Text(
+                  '${v.toInt()}',
                   style: GoogleFonts.outfit(
-                    fontSize: 9, color: context.textHint)),
-              );
-            },
-          )),
-          leftTitles: AxisTitles(sideTitles: SideTitles(
-            showTitles: true, reservedSize: 28,
-            getTitlesWidget: (v, _) => Text('${v.toInt()}',
-              style: GoogleFonts.outfit(fontSize: 10, color: context.textDisabled)),
-          )),
-          rightTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false)),
+                    fontSize: 10,
+                    color: context.textDisabled,
+                  ),
+                ),
+              ),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+          ),
+          gridData: FlGridData(
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (_) =>
+                FlLine(color: context.borderMid, strokeWidth: 1),
+          ),
+          borderData: FlBorderData(show: false),
         ),
-        gridData: FlGridData(
-          drawVerticalLine: false,
-          getDrawingHorizontalLine: (_) =>
-              FlLine(color: context.borderMid, strokeWidth: 1),
-        ),
-        borderData: FlBorderData(show: false),
-      )),
+      ),
     );
   }
 
   Widget _chartCard({required Widget child, required double height}) =>
-    Container(
-      height: height,
-      padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
-      decoration: BoxDecoration(
-        color: context.bgCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.borderSubtle),
-      ),
-      child: child,
-    );
+      Container(
+        height: height,
+        padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
+        decoration: BoxDecoration(
+          color: context.bgCard,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.borderSubtle),
+        ),
+        child: child,
+      );
 
   Widget _emptyState(String msg) => Container(
     height: 100,
@@ -404,8 +585,10 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
       borderRadius: BorderRadius.circular(16),
       border: Border.all(color: context.borderSubtle),
     ),
-    child: Text(msg,
-      style: GoogleFonts.outfit(fontSize: 13, color: context.textDisabled)),
+    child: Text(
+      msg,
+      style: GoogleFonts.outfit(fontSize: 13, color: context.textDisabled),
+    ),
   );
 }
 
@@ -424,15 +607,24 @@ class _StatTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
-      child: Column(children: [
-        Text(value,
-          style: GoogleFonts.outfit(
-            fontSize: 20, fontWeight: FontWeight.w800, color: color)),
-        const SizedBox(height: 2),
-        Text(label,
-          textAlign: TextAlign.center,
-          style: GoogleFonts.outfit(fontSize: 10, color: context.textHint)),
-      ]),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: GoogleFonts.outfit(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.outfit(fontSize: 10, color: context.textHint),
+          ),
+        ],
+      ),
     ),
   );
 }

@@ -56,8 +56,14 @@ CREATE TABLE IF NOT EXISTS quiz_attempts (
   lesson_id INTEGER REFERENCES lessons(id),
   score INTEGER NOT NULL,
   max_score INTEGER NOT NULL,
+  started_at TIMESTAMPTZ,
+  duration_seconds INTEGER CHECK (duration_seconds IS NULL OR duration_seconds >= 0),
   completed_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Keep existing databases compatible with the current application code.
+ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ;
+ALTER TABLE quiz_attempts ADD COLUMN IF NOT EXISTS duration_seconds INTEGER;
 
 -- Badges
 CREATE TABLE IF NOT EXISTS badges (
@@ -86,6 +92,18 @@ CREATE TABLE IF NOT EXISTS skill_mastery (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS skill_mastery_user_skill_idx
+  ON skill_mastery (user_id, skill_name);
+
+-- Learner-selected mastery goal shown in the open student model.
+CREATE TABLE IF NOT EXISTS user_goals (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE UNIQUE,
+  skill_name TEXT NOT NULL,
+  target_pct INTEGER NOT NULL DEFAULT 80 CHECK (target_pct BETWEEN 1 AND 100),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Learning sessions (analytics)
 CREATE TABLE IF NOT EXISTS learning_sessions (
   id SERIAL PRIMARY KEY,
@@ -106,6 +124,77 @@ CREATE TABLE IF NOT EXISTS feedback_responses (
   submitted_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Intrinsic Motivation Inventory subscales. Kept separate from usability
+-- feedback so motivation and knowledge outcomes cannot be confused.
+CREATE TABLE IF NOT EXISTS imi_responses (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  interest_enjoyment FLOAT NOT NULL CHECK (interest_enjoyment BETWEEN 1 AND 7),
+  perceived_competence FLOAT NOT NULL CHECK (perceived_competence BETWEEN 1 AND 7),
+  perceived_choice FLOAT NOT NULL CHECK (perceived_choice BETWEEN 1 AND 7),
+  relatedness FLOAT NOT NULL CHECK (relatedness BETWEEN 1 AND 7),
+  responses JSONB NOT NULL DEFAULT '{}'::jsonb,
+  submitted_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Dedicated pre/post knowledge outcomes. Raw counts are retained so the
+-- percentage can always be reproduced rather than parsed from free text.
+CREATE TABLE IF NOT EXISTS knowledge_assessments (
+  id SERIAL PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  assessment_type TEXT NOT NULL CHECK (assessment_type IN ('pre', 'post')),
+  score INTEGER NOT NULL CHECK (score >= 0),
+  max_score INTEGER NOT NULL CHECK (max_score > 0 AND score <= max_score),
+  submitted_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (user_id, assessment_type)
+);
+
+-- Research access is assigned only by a database administrator/service role.
+-- There is deliberately no client INSERT/UPDATE policy for this table.
+CREATE TABLE IF NOT EXISTS researcher_roles (
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE PRIMARY KEY,
+  granted_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE OR REPLACE FUNCTION is_researcher(check_user UUID DEFAULT auth.uid())
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM researcher_roles WHERE user_id = check_user
+  );
+$$;
+
+REVOKE ALL ON FUNCTION is_researcher(UUID) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION is_researcher(UUID) TO authenticated;
+
+-- Public leaderboard data is returned through a narrow function instead of
+-- granting access to every profile column.
+CREATE OR REPLACE FUNCTION get_leaderboard(row_limit INTEGER DEFAULT 10)
+RETURNS TABLE (
+  username TEXT,
+  display_name TEXT,
+  xp INTEGER,
+  level INTEGER,
+  streak_days INTEGER
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT p.username, p.display_name, p.xp, p.level, p.streak_days
+  FROM profiles p
+  ORDER BY p.xp DESC, p.created_at ASC
+  LIMIT LEAST(GREATEST(row_limit, 1), 100);
+$$;
+
+REVOKE ALL ON FUNCTION get_leaderboard(INTEGER) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION get_leaderboard(INTEGER) TO authenticated;
+
 -- ── ROW LEVEL SECURITY ────────────────────────────────────────
 ALTER TABLE profiles          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quiz_attempts     ENABLE ROW LEVEL SECURITY;
@@ -113,6 +202,10 @@ ALTER TABLE user_badges       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE skill_mastery     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE learning_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE feedback_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_goals         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE imi_responses      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE knowledge_assessments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE researcher_roles   ENABLE ROW LEVEL SECURITY;
 
 -- Drop policies before recreating (safe to re-run)
 DROP POLICY IF EXISTS "Users can view own profile"        ON profiles;
@@ -124,6 +217,16 @@ DROP POLICY IF EXISTS "Users can view own badges"         ON user_badges;
 DROP POLICY IF EXISTS "Users can insert own badges"       ON user_badges;
 DROP POLICY IF EXISTS "Users can manage own sessions"     ON learning_sessions;
 DROP POLICY IF EXISTS "Users can submit own feedback"     ON feedback_responses;
+DROP POLICY IF EXISTS "Users can manage own goals"         ON user_goals;
+DROP POLICY IF EXISTS "Users can submit own IMI"           ON imi_responses;
+DROP POLICY IF EXISTS "Users can manage own assessments"   ON knowledge_assessments;
+DROP POLICY IF EXISTS "Researchers can view profiles"      ON profiles;
+DROP POLICY IF EXISTS "Researchers can view attempts"      ON quiz_attempts;
+DROP POLICY IF EXISTS "Researchers can view mastery"       ON skill_mastery;
+DROP POLICY IF EXISTS "Researchers can view sessions"      ON learning_sessions;
+DROP POLICY IF EXISTS "Researchers can view feedback"      ON feedback_responses;
+DROP POLICY IF EXISTS "Researchers can view IMI"           ON imi_responses;
+DROP POLICY IF EXISTS "Researchers can view assessments"   ON knowledge_assessments;
 DROP POLICY IF EXISTS "Anyone can view topics"            ON topics;
 DROP POLICY IF EXISTS "Anyone can view lessons"           ON lessons;
 DROP POLICY IF EXISTS "Anyone can view quiz questions"    ON quiz_questions;
@@ -161,6 +264,37 @@ CREATE POLICY "Users can manage own sessions"
 -- Feedback
 CREATE POLICY "Users can submit own feedback"
   ON feedback_responses FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can manage own goals"
+  ON user_goals FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can submit own IMI"
+  ON imi_responses FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can manage own assessments"
+  ON knowledge_assessments FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Read-only study-wide access for explicitly authorised researchers.
+CREATE POLICY "Researchers can view profiles"
+  ON profiles FOR SELECT USING (is_researcher());
+CREATE POLICY "Researchers can view attempts"
+  ON quiz_attempts FOR SELECT USING (is_researcher());
+CREATE POLICY "Researchers can view mastery"
+  ON skill_mastery FOR SELECT USING (is_researcher());
+CREATE POLICY "Researchers can view sessions"
+  ON learning_sessions FOR SELECT USING (is_researcher());
+CREATE POLICY "Researchers can view feedback"
+  ON feedback_responses FOR SELECT USING (is_researcher());
+CREATE POLICY "Researchers can view IMI"
+  ON imi_responses FOR SELECT USING (is_researcher());
+CREATE POLICY "Researchers can view assessments"
+  ON knowledge_assessments FOR SELECT USING (is_researcher());
 
 -- Public read access for content tables
 CREATE POLICY "Anyone can view topics"         ON topics          FOR SELECT USING (true);
