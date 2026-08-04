@@ -23,16 +23,30 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   List<badge_model.Badge> _allBadges = [];
   bool _badgesLoaded = false;
+  bool _isResearcher = false;
 
   @override
   void initState() {
     super.initState();
     _loadAllBadges();
+    _loadResearcherAccess();
   }
 
   Future<void> _loadAllBadges() async {
     final badges = await GamificationService().fetchAllBadges();
+    if (!mounted) return;
     setState(() { _allBadges = badges; _badgesLoaded = true; });
+  }
+
+  Future<void> _loadResearcherAccess() async {
+    try {
+      final isResearcher = await GamificationService().isResearcher();
+      if (!mounted) return;
+      setState(() => _isResearcher = isResearcher);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isResearcher = false);
+    }
   }
 
   void _showEditDisplayName(BuildContext context, UserProvider userProvider, String current) {
@@ -520,24 +534,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 10),
           ],
 
-          // Analytics dashboard (researcher view)
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => context.push('/analytics'),
-              icon: const Icon(Icons.bar_chart_outlined, size: 18),
-              label: Text('Analytics Dashboard',
-                style: GoogleFonts.outfit(fontSize: 14)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF4B8BBE),
-                side: const BorderSide(color: Color(0xFF4B8BBE), width: 1),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
+          // Analytics dashboard is discoverable only by authorised researchers.
+          if (_isResearcher) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => context.push('/analytics'),
+                icon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
+                label: Text('Research Analytics Dashboard',
+                  style: GoogleFonts.outfit(fontSize: 14)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF4B8BBE),
+                  side: const BorderSide(color: Color(0xFF4B8BBE), width: 1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 10),
+            const SizedBox(height: 10),
+          ],
 
           // Pre/Post test
           SizedBox(

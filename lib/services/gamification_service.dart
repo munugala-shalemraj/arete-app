@@ -244,8 +244,12 @@ class GamificationService {
   }
 
   // ── ANALYTICS ───────────────────────────────────────────────
+  Future<bool> isResearcher() async {
+    return await _client.rpc('is_researcher') as bool? ?? false;
+  }
+
   Future<Map<String, dynamic>> fetchAnalyticsSummary() async {
-    final authorised = await _client.rpc('is_researcher') as bool? ?? false;
+    final authorised = await isResearcher();
     if (!authorised) {
       throw StateError(
         'Researcher access is required for aggregate analytics.',
