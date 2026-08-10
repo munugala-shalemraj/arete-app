@@ -367,8 +367,26 @@ class _QuizScreenState extends State<QuizScreen> {
                   const SizedBox(height: 8),
                   // Score indicator
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2ECC71).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Quiz XP: ${_score * xpPerCorrectAnswer}',
+                          style: GoogleFonts.outfit(
+                            color: const Color(0xFF2ECC71),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
@@ -971,7 +989,7 @@ class _ResultSheetState extends State<_ResultSheet>
                       ),
                     ),
                     child: Text(
-                      '+${widget.xpEarned} XP earned',
+                      '+${widget.xpEarned} XP added to your total',
                       style: GoogleFonts.outfit(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,

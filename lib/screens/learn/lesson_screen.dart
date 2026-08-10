@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
@@ -966,12 +967,35 @@ class _CodeBlock extends StatelessWidget {
                   style: GoogleFonts.dmMono(
                     fontSize: 11, color: const Color(0xFF4B8BBE))),
               ),
+              const SizedBox(width: 8),
+              IconButton(
+                tooltip: 'Copy code',
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                icon: const Icon(Icons.copy_rounded,
+                  color: Color(0xFFE6EDF3), size: 18),
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: code));
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Python code copied to clipboard',
+                        style: GoogleFonts.outfit(color: Colors.white)),
+                      backgroundColor: const Color(0xFF238636),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
             ]),
           ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.all(16),
-            child: Text(code,
+            child: SelectableText(code,
+              enableInteractiveSelection: true,
               style: GoogleFonts.dmMono(
                 fontSize: 13, color: const Color(0xFFE6EDF3), height: 1.7)),
           ),

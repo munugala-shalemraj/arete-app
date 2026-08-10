@@ -20,7 +20,9 @@ class SkillRadarChart extends StatelessWidget {
       );
     }
 
-    final displaySkills = skills.take(6).toList();
+    // Display every skill maintained by the open student model. The app
+    // currently initialises seven skills, so no axis should be silently lost.
+    final displaySkills = skills.toList();
     final gridColor = context.borderMid;
     final labelColor = context.textSecondary;
     final tickColor = context.textDisabled;

@@ -4,13 +4,17 @@ import '../models/quiz_question.dart';
 class QuizService {
   final _client = Supabase.instance.client;
 
-  Future<List<QuizQuestion>> fetchQuestionsForLesson(int lessonId,
-      {int pickCount = 10}) async {
+  Future<List<QuizQuestion>> fetchQuestionsForLesson(
+    int lessonId, {
+    int pickCount = 10,
+  }) async {
     final data = await _client
         .from('quiz_questions')
         .select()
         .eq('lesson_id', lessonId);
-    final all = (data as List).map((e) => QuizQuestion.fromJson(e)).toList();
+    final all = (data as List)
+        .map((e) => QuizQuestion.fromJson(e).withShuffledOptions())
+        .toList();
     all.shuffle(); // different order every attempt
     return all.take(pickCount).toList();
   }
@@ -30,8 +34,7 @@ class QuizService {
           'lesson_id': lessonId,
           'score': score,
           'max_score': maxScore,
-          if (startedAt != null)
-            'started_at': startedAt.toIso8601String(),
+          if (startedAt != null) 'started_at': startedAt.toIso8601String(),
           if (startedAt != null)
             'duration_seconds': now.difference(startedAt).inSeconds,
         })
@@ -64,7 +67,9 @@ class QuizService {
 
   Future<List<QuizQuestion>> fetchDailyChallenge({int count = 5}) async {
     final data = await _client.from('quiz_questions').select();
-    final all = (data as List).map((e) => QuizQuestion.fromJson(e)).toList();
+    final all = (data as List)
+        .map((e) => QuizQuestion.fromJson(e).withShuffledOptions())
+        .toList();
     all.shuffle();
     return all.take(count).toList();
   }
