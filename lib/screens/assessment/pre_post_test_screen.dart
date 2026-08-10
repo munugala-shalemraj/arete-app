@@ -6,7 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/analytics_service.dart';
 import '../../theme/app_theme.dart';
 
-const _questions = [
+const _preTestQuestions = [
   _TestQ(
     q: 'Which data type does the expression type(3.14) return in Python?',
     opts: ['int', 'float', 'double', 'number'],
@@ -89,6 +89,66 @@ const _questions = [
   ),
 ];
 
+// Parallel post-test: measures the same curriculum areas as the pre-test with
+// different wording, values and code examples to reduce recall effects.
+const _postTestQuestions = [
+  _TestQ(
+    q: 'What is the value and data type of the Python expression 9 // 4?',
+    opts: ['2.25 (float)', '2 (int)', '3 (int)', '9 (int)'],
+    correct: 1,
+  ),
+  _TestQ(
+    q: 'What does the following Python code print?\n\nvalues = [5, 10, 15, 20]\nprint(values[1:3])',
+    opts: ['[5, 10, 15]', '[10, 15, 20]', '[10, 15]', '[5, 10]'],
+    correct: 2,
+  ),
+  _TestQ(
+    q: 'What is printed by this code?\n\nfor n in range(3):\n    print(n, end=" ")',
+    opts: ['0 1 2', '1 2 3', '0 1 2 3', '3 3 3'],
+    correct: 0,
+  ),
+  _TestQ(
+    q: 'What does this function return when called as double(6)?\n\ndef double(x):\n    return x * 2',
+    opts: ['6', '8', '12', '"66"'],
+    correct: 2,
+  ),
+  _TestQ(
+    q: 'Which Pandas function loads a comma-separated data file into a DataFrame?',
+    opts: ['pd.open_csv()', 'pd.DataFrame.csv()', 'pd.load()', 'pd.read_csv()'],
+    correct: 3,
+  ),
+  _TestQ(
+    q: 'Given scores = {"Ana": 72, "Ben": 85}, how do you retrieve Ben\'s score?',
+    opts: ['scores["Ben"]', 'scores.Ben()', 'scores(1)', 'scores[85]'],
+    correct: 0,
+  ),
+  _TestQ(
+    q: 'Which expression selects rows where the "age" column is at least 18?',
+    opts: [
+      'df.select(age >= 18)',
+      'df[df["age"] >= 18]',
+      'df["age"].rows(18)',
+      'df.where("age", 18)',
+    ],
+    correct: 1,
+  ),
+  _TestQ(
+    q: 'Which NumPy expression calculates the average of arr?',
+    opts: ['np.total(arr)', 'arr.average[]', 'np.mean(arr)', 'np.middle(arr)'],
+    correct: 2,
+  ),
+  _TestQ(
+    q: 'Which Pandas method removes rows containing missing values?',
+    opts: ['df.dropna()', 'df.fillna()', 'df.remove_nulls()', 'df.isna()'],
+    correct: 0,
+  ),
+  _TestQ(
+    q: 'Which Matplotlib command adds a label to the horizontal axis?',
+    opts: ['plt.title()', 'plt.ylabel()', 'plt.legend()', 'plt.xlabel()'],
+    correct: 3,
+  ),
+];
+
 class _TestQ {
   final String q;
   final List<String> opts;
@@ -110,6 +170,9 @@ class _PrePostTestScreenState extends State<PrePostTestScreen> {
   int _score = 0;
   bool _answered = false;
   bool _finished = false;
+
+  List<_TestQ> get _questions =>
+      widget.isPostTest ? _postTestQuestions : _preTestQuestions;
 
   void _select(int opt) {
     if (_answered) return;

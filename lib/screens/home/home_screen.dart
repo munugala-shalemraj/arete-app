@@ -27,6 +27,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  final _homeTabKey = GlobalKey<_HomeTabState>();
 
   @override
   void initState() {
@@ -65,7 +66,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final profile = userProvider.profile;
 
     final screens = [
-      _HomeTab(onNavigate: (i) => setState(() => _selectedIndex = i)),
+      _HomeTab(
+        key: _homeTabKey,
+        onNavigate: (i) => setState(() => _selectedIndex = i),
+      ),
       const TopicListScreen(),
       const StudentModelDashboard(),
       const LeaderboardScreen(),
@@ -165,7 +169,10 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: Colors.transparent,
           indicatorColor: const Color(0xFFFFD700).withOpacity(0.15),
           selectedIndex: _selectedIndex,
-          onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+          onDestinationSelected: (i) {
+            setState(() => _selectedIndex = i);
+            if (i == 0) _homeTabKey.currentState?._loadStats();
+          },
           labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
           destinations: List.generate(
             5,
@@ -186,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class _HomeTab extends StatefulWidget {
   final ValueChanged<int> onNavigate;
-  const _HomeTab({required this.onNavigate});
+  const _HomeTab({super.key, required this.onNavigate});
   @override
   State<_HomeTab> createState() => _HomeTabState();
 }
@@ -203,6 +210,8 @@ const _skillLessonKeywords = {
 };
 
 class _HomeTabState extends State<_HomeTab> {
+  static const int _requiredLessonsForPostTest = 10;
+
   final _lessonService = LessonService();
   final _quizService = QuizService();
 
@@ -211,9 +220,9 @@ class _HomeTabState extends State<_HomeTab> {
   String? _recommendedSkill;
   int _lessonsCompleted = 0;
   int _quizzesCompleted = 0;
-  List<Lesson> _allLessons = [];
   bool _loading = true;
   bool _hasPreTest = true; // assume done until checked
+  bool _hasPostTest = true; // assume done until checked
 
   @override
   void initState() {
@@ -260,6 +269,10 @@ class _HomeTabState extends State<_HomeTab> {
         userId: userId,
         assessmentType: 'pre',
       );
+      final hasPostTest = await AnalyticsService().hasKnowledgeAssessment(
+        userId: userId,
+        assessmentType: 'post',
+      );
 
       // Adaptive recommendation: find weakest skill → match to uncompleted lesson
       // Reload profile to ensure skills are fresh
@@ -294,10 +307,10 @@ class _HomeTabState extends State<_HomeTab> {
         _lessonsCompleted = completed;
         _nextLesson = next;
         _quizzesCompleted = attempts.length;
-        _allLessons = allLessons;
         _recommendedLesson = recommended;
         _recommendedSkill = recommendedSkill;
         _hasPreTest = hasPreTest;
+        _hasPostTest = hasPostTest;
         _loading = false;
       });
     } catch (_) {
@@ -342,7 +355,27 @@ class _HomeTabState extends State<_HomeTab> {
 
           // Knowledge assessment banner — shown only until pre-test is done
           if (!_loading && !_hasPreTest) ...[
-            _KnowledgeAssessmentBanner(onTap: () => context.push('/test')),
+            _KnowledgeAssessmentBanner(
+              onTap: () async {
+                await context.push('/test');
+                if (mounted) await _loadStats();
+              },
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // Follow-up assessment: unlocked after all 10 lessons and hidden once submitted.
+          if (!_loading &&
+              _hasPreTest &&
+              !_hasPostTest &&
+              _lessonsCompleted >= _requiredLessonsForPostTest) ...[
+            _KnowledgeAssessmentBanner(
+              isPostTest: true,
+              onTap: () async {
+                await context.push('/test?post=true');
+                if (mounted) await _loadStats();
+              },
+            ),
             const SizedBox(height: 24),
           ],
 
@@ -511,7 +544,11 @@ class _HomeTabState extends State<_HomeTab> {
 
 class _KnowledgeAssessmentBanner extends StatelessWidget {
   final VoidCallback onTap;
-  const _KnowledgeAssessmentBanner({required this.onTap});
+  final bool isPostTest;
+  const _KnowledgeAssessmentBanner({
+    required this.onTap,
+    this.isPostTest = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -556,7 +593,9 @@ class _KnowledgeAssessmentBanner extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Knowledge Assessment',
+                        isPostTest
+                            ? 'Post-Test Knowledge Assessment'
+                            : 'Knowledge Assessment',
                         style: GoogleFonts.outfit(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
@@ -565,7 +604,9 @@ class _KnowledgeAssessmentBanner extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Required before you begin',
+                        isPostTest
+                            ? 'Unlocked after completing all 10 lessons'
+                            : 'Required before you begin',
                         style: GoogleFonts.outfit(
                           fontSize: 12,
                           color: Colors.white70,
@@ -596,8 +637,11 @@ class _KnowledgeAssessmentBanner extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Text(
-              'Help us understand your prior Python knowledge before you start learning. '
-              'Your answers are used for research purposes only and do not affect your progress.',
+              isPostTest
+                  ? 'Complete the follow-up assessment so we can measure how your Python knowledge changed after using Arete. '
+                        'Your result is used for research purposes only and does not affect your progress.'
+                  : 'Help us understand your prior Python knowledge before you start learning. '
+                        'Your answers are used for research purposes only and do not affect your progress.',
               style: GoogleFonts.outfit(
                 fontSize: 13,
                 color: Colors.white.withOpacity(0.85),
@@ -611,7 +655,9 @@ class _KnowledgeAssessmentBanner extends StatelessWidget {
                 onPressed: onTap,
                 icon: const Icon(Icons.play_arrow_rounded, size: 20),
                 label: Text(
-                  'Attend Knowledge Assessment',
+                  isPostTest
+                      ? 'Take Post-Test Assessment'
+                      : 'Attend Knowledge Assessment',
                   style: GoogleFonts.outfit(
                     fontSize: 14,
                     fontWeight: FontWeight.w800,

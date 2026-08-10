@@ -555,24 +555,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 10),
           ],
 
-          // Pre/Post test
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => context.push('/test'),
-              icon: const Icon(Icons.assignment_outlined, size: 18),
-              label: Text('Knowledge Assessment',
-                style: GoogleFonts.outfit(fontSize: 14)),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFC9A84C),
-                side: const BorderSide(color: Color(0xFFC9A84C), width: 1),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-            ),
-          ),
-
           const SizedBox(height: 28),
 
           // Research documents section
