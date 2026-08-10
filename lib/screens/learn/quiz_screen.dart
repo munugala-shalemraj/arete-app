@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -27,7 +28,9 @@ class QuizScreen extends StatefulWidget {
 class _QuizScreenState extends State<QuizScreen> {
   final _quizService = QuizService();
   final _gamService = GamificationService();
-  final _audioPlayer = AudioPlayer();
+  final _correctAudioPlayer = AudioPlayer();
+  final _wrongAudioPlayer = AudioPlayer();
+  late final Future<void> _audioReady;
 
   List<QuizQuestion> _questions = [];
   int _currentIndex = 0;
@@ -46,6 +49,7 @@ class _QuizScreenState extends State<QuizScreen> {
   void initState() {
     super.initState();
     _startedAt = DateTime.now().toUtc();
+    _audioReady = _prepareFeedbackAudio();
     SharedPreferences.getInstance().then((prefs) {
       _timerEnabled = prefs.getBool('quiz_timer_enabled') ?? true;
       _load();
@@ -55,8 +59,27 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    _audioPlayer.dispose();
+    _correctAudioPlayer.dispose();
+    _wrongAudioPlayer.dispose();
     super.dispose();
+  }
+
+  Future<void> _prepareFeedbackAudio() async {
+    await Future.wait([
+      _correctAudioPlayer.setReleaseMode(ReleaseMode.stop),
+      _wrongAudioPlayer.setReleaseMode(ReleaseMode.stop),
+    ]);
+    await Future.wait([
+      _correctAudioPlayer.setSource(AssetSource('audio/correct.wav')),
+      _wrongAudioPlayer.setSource(AssetSource('audio/wrong.wav')),
+    ]);
+  }
+
+  void _playFeedbackSound(bool isCorrect) {
+    final player = isCorrect ? _correctAudioPlayer : _wrongAudioPlayer;
+    // The source is already decoded. Restarting and resuming in one async
+    // chain keeps the sound aligned with the answer/XP animation frame.
+    unawaited(player.stop().then((_) => player.resume()));
   }
 
   void _startTimer() {
@@ -76,7 +99,7 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _timeUp() {
-    _audioPlayer.play(AssetSource('audio/wrong.wav'));
+    _playFeedbackSound(false);
     setState(() {
       _checked = true;
       _timeLeft = 0;
@@ -86,7 +109,12 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Future<void> _load() async {
     final qs = await _quizService.fetchQuestionsForLesson(widget.lesson.id);
-    setState(() { _questions = qs; _loading = false; });
+    await _audioReady;
+    if (!mounted) return;
+    setState(() {
+      _questions = qs;
+      _loading = false;
+    });
     _startTimer();
   }
 
@@ -99,12 +127,11 @@ class _QuizScreenState extends State<QuizScreen> {
     if (_selectedOption == null) return;
     _timer?.cancel();
     final isCorrect = _questions[_currentIndex].isCorrect(_selectedOption!);
+    _playFeedbackSound(isCorrect);
     setState(() {
       _checked = true;
       if (isCorrect) _score++;
     });
-    _audioPlayer.play(
-        AssetSource(isCorrect ? 'audio/correct.wav' : 'audio/wrong.wav'));
   }
 
   void _next() {
@@ -138,8 +165,8 @@ class _QuizScreenState extends State<QuizScreen> {
       );
 
       // XP: 10 per correct + 25 bonus for perfect
-      final xpEarned = (_score * xpPerCorrectAnswer) +
-          (isPerfect ? xpPerfectQuizBonus : 0);
+      final xpEarned =
+          (_score * xpPerCorrectAnswer) + (isPerfect ? xpPerfectQuizBonus : 0);
       await userProv.awardXp(xpEarned);
 
       // Skill mastery
@@ -155,11 +182,15 @@ class _QuizScreenState extends State<QuizScreen> {
       // Badges
       final profile = userProv.profile;
       if (profile != null) {
-        final lessonsCompleted = await _gamService.countCompletedLessons(userId);
+        final lessonsCompleted = await _gamService.countCompletedLessons(
+          userId,
+        );
         final newBadges = await _gamService.checkAndAwardBadges(
           userId: userId,
           lessonsCompleted: lessonsCompleted,
-          totalXp: profile.xp + (_score * xpPerCorrectAnswer) +
+          totalXp:
+              profile.xp +
+              (_score * xpPerCorrectAnswer) +
               (isPerfect ? xpPerfectQuizBonus : 0),
           streakDays: profile.streakDays,
           perfectQuiz: isPerfect,
@@ -178,15 +209,17 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _showBadgeSnackbar(List<String> badges) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(
-        '🏅 New badge${badges.length > 1 ? "s" : ""} earned: ${badges.join(", ")}',
-        style: GoogleFonts.outfit(color: Colors.white),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '🏅 New badge${badges.length > 1 ? "s" : ""} earned: ${badges.join(", ")}',
+          style: GoogleFonts.outfit(color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFFC9A84C),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
       ),
-      backgroundColor: const Color(0xFFC9A84C),
-      behavior: SnackBarBehavior.floating,
-      duration: const Duration(seconds: 4),
-    ));
+    );
   }
 
   void _showResultSheet(bool isPerfect) {
@@ -196,6 +229,8 @@ class _QuizScreenState extends State<QuizScreen> {
 
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
       isDismissible: false,
       enableDrag: false,
       backgroundColor: context.bgSurface,
@@ -210,20 +245,22 @@ class _QuizScreenState extends State<QuizScreen> {
         lessonTitle: widget.lesson.title,
         onDone: () {
           Navigator.of(context).pop(); // close sheet
-          context.pop();              // go back to lesson list
+          context.pop(); // go back to lesson list
         },
-        onRetry: total > 0 ? () {
-          Navigator.of(context).pop();
-          _timer?.cancel();
-          setState(() {
-            _currentIndex = 0;
-            _selectedOption = null;
-            _checked = false;
-            _score = 0;
-            _loading = true;
-          });
-          _load(); // re-fetch and re-shuffle
-        } : null,
+        onRetry: total > 0
+            ? () {
+                Navigator.of(context).pop();
+                _timer?.cancel();
+                setState(() {
+                  _currentIndex = 0;
+                  _selectedOption = null;
+                  _checked = false;
+                  _score = 0;
+                  _loading = true;
+                });
+                _load(); // re-fetch and re-shuffle
+              }
+            : null,
       ),
     );
   }
@@ -233,8 +270,11 @@ class _QuizScreenState extends State<QuizScreen> {
     if (_loading) {
       return Scaffold(
         backgroundColor: context.bgPrimary,
-        body: const Center(child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC9A84C)))),
+        body: const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC9A84C)),
+          ),
+        ),
       );
     }
 
@@ -245,23 +285,30 @@ class _QuizScreenState extends State<QuizScreen> {
           backgroundColor: Colors.transparent,
           iconTheme: IconThemeData(color: context.textPrimary),
         ),
-        body: Center(child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.quiz_outlined, color: context.textDisabled, size: 64),
-            const SizedBox(height: 16),
-            Text('No questions yet for this lesson.',
-              style: GoogleFonts.outfit(color: context.textHint)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: context.pop,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFC9A84C)),
-              child: Text('Go Back',
-                style: GoogleFonts.outfit(color: Colors.black)),
-            ),
-          ],
-        )),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.quiz_outlined, color: context.textDisabled, size: 64),
+              const SizedBox(height: 16),
+              Text(
+                'No questions yet for this lesson.',
+                style: GoogleFonts.outfit(color: context.textHint),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: context.pop,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC9A84C),
+                ),
+                child: Text(
+                  'Go Back',
+                  style: GoogleFonts.outfit(color: Colors.black),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -282,7 +329,10 @@ class _QuizScreenState extends State<QuizScreen> {
           children: [
             Text(
               'Q${_currentIndex + 1} of ${_questions.length}',
-              style: GoogleFonts.outfit(color: context.textSecondary, fontSize: 15),
+              style: GoogleFonts.outfit(
+                color: context.textSecondary,
+                fontSize: 15,
+              ),
             ),
             if (_timerEnabled) ...[
               const SizedBox(width: 14),
@@ -299,140 +349,175 @@ class _QuizScreenState extends State<QuizScreen> {
               value: (_currentIndex + 1) / _questions.length,
               minHeight: 4,
               backgroundColor: context.borderMid,
-              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFC9A84C)),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFFC9A84C),
+              ),
             ),
           ),
         ),
       ),
-      body: Column(children: [
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-                // Score indicator
-                Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFC9A84C).withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text('Score: $_score',
-                      style: GoogleFonts.outfit(
-                        color: const Color(0xFFC9A84C),
-                        fontWeight: FontWeight.w600, fontSize: 13),
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: 16),
-                Text(q.questionText,
-                  style: GoogleFonts.outfit(
-                    fontSize: 19, fontWeight: FontWeight.w700,
-                    color: context.textPrimary, height: 1.4),
-                ),
-                const SizedBox(height: 28),
-                for (final opt in ['a', 'b', 'c', 'd'])
-                  _OptionButton(
-                    option: opt,
-                    text: q.optionText(opt),
-                    state: _checked
-                        ? q.isCorrect(opt)
-                            ? _OptionState.correct
-                            : _selectedOption == opt
-                                ? _OptionState.wrong
-                                : _OptionState.neutral
-                        : _selectedOption == opt
-                            ? _OptionState.selected
-                            : _OptionState.neutral,
-                    showXp: _checked && _selectedOption == opt && q.isCorrect(opt),
-                    onTap: () => _selectOption(opt),
-                  ),
-                // Explanation
-                if (_checked && q.explanation != null)
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: correct
-                          ? AColors.correct.withOpacity(0.08)
-                          : AColors.wrong.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: correct
-                            ? AColors.correct.withOpacity(0.3)
-                            : AColors.wrong.withOpacity(0.3),
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          correct ? Icons.check_circle_outline : Icons.info_outline,
-                          color: correct ? AColors.correct : AColors.wrong,
-                          size: 18,
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  // Score indicator
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(q.explanation!,
-                            style: GoogleFonts.outfit(
-                              color: context.textSecondary, fontSize: 13, height: 1.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFC9A84C).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Score: $_score',
+                          style: GoogleFonts.outfit(
+                            color: const Color(0xFFC9A84C),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
                           ),
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    q.questionText,
+                    style: GoogleFonts.outfit(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w700,
+                      color: context.textPrimary,
+                      height: 1.4,
                     ),
                   ),
-              ],
+                  const SizedBox(height: 28),
+                  for (final opt in ['a', 'b', 'c', 'd'])
+                    _OptionButton(
+                      option: opt,
+                      text: q.optionText(opt),
+                      state: _checked
+                          ? q.isCorrect(opt)
+                                ? _OptionState.correct
+                                : _selectedOption == opt
+                                ? _OptionState.wrong
+                                : _OptionState.neutral
+                          : _selectedOption == opt
+                          ? _OptionState.selected
+                          : _OptionState.neutral,
+                      showXp:
+                          _checked &&
+                          _selectedOption == opt &&
+                          q.isCorrect(opt),
+                      onTap: () => _selectOption(opt),
+                    ),
+                  // Explanation
+                  if (_checked && q.explanation != null)
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      margin: const EdgeInsets.only(top: 8),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: correct
+                            ? AColors.correct.withOpacity(0.08)
+                            : AColors.wrong.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: correct
+                              ? AColors.correct.withOpacity(0.3)
+                              : AColors.wrong.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            correct
+                                ? Icons.check_circle_outline
+                                : Icons.info_outline,
+                            color: correct ? AColors.correct : AColors.wrong,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              q.explanation!,
+                              style: GoogleFonts.outfit(
+                                color: context.textSecondary,
+                                fontSize: 13,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
-        ),
 
-        // Bottom action buttons
-        Padding(
-          padding: const EdgeInsets.fromLTRB(22, 0, 22, 28),
-          child: _checked
-              ? SizedBox(
-                  width: double.infinity, height: 52,
-                  child: ElevatedButton(
-                    onPressed: _next,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC9A84C),
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+          // Bottom action buttons
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 0, 22, 28),
+            child: _checked
+                ? SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _next,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFC9A84C),
+                        foregroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        _currentIndex < _questions.length - 1
+                            ? 'Next Question →'
+                            : 'Finish Quiz ✓',
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
-                    child: Text(
-                      _currentIndex < _questions.length - 1
-                          ? 'Next Question →'
-                          : 'Finish Quiz ✓',
-                      style: GoogleFonts.outfit(
-                        fontSize: 16, fontWeight: FontWeight.w700),
+                  )
+                : SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _selectedOption != null ? _checkAnswer : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _selectedOption != null
+                            ? const Color(0xFF4F8EF7)
+                            : context.bgSurface,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        'Check Answer',
+                        style: GoogleFonts.outfit(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
-                )
-              : SizedBox(
-                  width: double.infinity, height: 52,
-                  child: ElevatedButton(
-                    onPressed: _selectedOption != null ? _checkAnswer : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _selectedOption != null
-                          ? const Color(0xFF4F8EF7)
-                          : context.bgSurface,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: Text('Check Answer',
-                      style: GoogleFonts.outfit(
-                        fontSize: 16, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
-        ),
-      ]),
+          ),
+        ],
+      ),
     );
   }
 
@@ -441,23 +526,34 @@ class _QuizScreenState extends State<QuizScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: context.bgSurface,
-        title: Text('Quit quiz?',
-          style: GoogleFonts.outfit(color: context.textPrimary, fontWeight: FontWeight.w700)),
-        content: Text('Your progress will be lost.',
-          style: GoogleFonts.outfit(color: context.textSecondary)),
+        title: Text(
+          'Quit quiz?',
+          style: GoogleFonts.outfit(
+            color: context.textPrimary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          'Your progress will be lost.',
+          style: GoogleFonts.outfit(color: context.textSecondary),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Keep going',
-              style: GoogleFonts.outfit(color: const Color(0xFFC9A84C))),
+            child: Text(
+              'Keep going',
+              style: GoogleFonts.outfit(color: const Color(0xFFC9A84C)),
+            ),
           ),
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
               context.pop();
             },
-            child: Text('Quit',
-              style: GoogleFonts.outfit(color: Colors.redAccent)),
+            child: Text(
+              'Quit',
+              style: GoogleFonts.outfit(color: Colors.redAccent),
+            ),
           ),
         ],
       ),
@@ -478,8 +574,8 @@ class _TimerBadge extends StatelessWidget {
     final color = frac > 0.4
         ? const Color(0xFF4CAF50)
         : frac > 0.2
-            ? const Color(0xFFFFA726)
-            : Colors.redAccent;
+        ? const Color(0xFFFFA726)
+        : Colors.redAccent;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -488,13 +584,21 @@ class _TimerBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withOpacity(0.5)),
       ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.timer_outlined, color: color, size: 13),
-        const SizedBox(width: 4),
-        Text('${timeLeft}s',
-          style: GoogleFonts.outfit(
-            color: color, fontSize: 13, fontWeight: FontWeight.w700)),
-      ]),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.timer_outlined, color: color, size: 13),
+          const SizedBox(width: 4),
+          Text(
+            '${timeLeft}s',
+            style: GoogleFonts.outfit(
+              color: color,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -509,8 +613,11 @@ class _OptionButton extends StatefulWidget {
   final VoidCallback onTap;
   const _OptionButton({
     super.key,
-    required this.option, required this.text,
-    required this.state, required this.showXp, required this.onTap,
+    required this.option,
+    required this.text,
+    required this.state,
+    required this.showXp,
+    required this.onTap,
   });
 
   @override
@@ -530,12 +637,16 @@ class _OptionButtonState extends State<_OptionButton>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-    _yAnim = Tween<double>(begin: 0.0, end: -80.0).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _yAnim = Tween<double>(
+      begin: 0.0,
+      end: -80.0,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
     _opacityAnim = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(
         parent: _ctrl,
-        curve: const Interval(0.45, 1.0, curve: Curves.easeIn)));
+        curve: const Interval(0.45, 1.0, curve: Curves.easeIn),
+      ),
+    );
   }
 
   @override
@@ -558,10 +669,14 @@ class _OptionButtonState extends State<_OptionButton>
 
   Color _accent(BuildContext ctx) {
     switch (widget.state) {
-      case _OptionState.correct:  return AColors.correct;
-      case _OptionState.wrong:    return AColors.wrong;
-      case _OptionState.selected: return AColors.selected;
-      default: return ctx.isDark ? Colors.white12 : Colors.black12;
+      case _OptionState.correct:
+        return AColors.correct;
+      case _OptionState.wrong:
+        return AColors.wrong;
+      case _OptionState.selected:
+        return AColors.selected;
+      default:
+        return ctx.isDark ? Colors.white12 : Colors.black12;
     }
   }
 
@@ -586,37 +701,59 @@ class _OptionButtonState extends State<_OptionButton>
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: accent,
-                width: (widget.state == _OptionState.correct ||
-                        widget.state == _OptionState.wrong) ? 2 : 1),
-            ),
-            child: Row(children: [
-              Container(
-                width: 30, height: 30,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: accent.withOpacity(0.15),
-                  border: Border.all(color: accent),
-                ),
-                child: Center(
-                  child: widget.state == _OptionState.correct
-                      ? Icon(Icons.check, color: AColors.correct, size: 16)
-                      : widget.state == _OptionState.wrong
-                          ? Icon(Icons.close, color: AColors.wrong, size: 16)
-                          : Text(widget.option.toUpperCase(),
-                              style: GoogleFonts.outfit(
-                                fontSize: 13, fontWeight: FontWeight.w700,
-                                color: textCol)),
-                ),
+                width:
+                    (widget.state == _OptionState.correct ||
+                        widget.state == _OptionState.wrong)
+                    ? 2
+                    : 1,
               ),
-              const SizedBox(width: 12),
-              Expanded(child: Text(widget.text,
-                style: GoogleFonts.outfit(
-                  fontSize: 14, color: textCol, height: 1.35))),
-              if (widget.state == _OptionState.correct)
-                const Icon(Icons.check_circle, color: AColors.correct, size: 20),
-              if (widget.state == _OptionState.wrong)
-                const Icon(Icons.cancel, color: AColors.wrong, size: 20),
-            ]),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: accent.withOpacity(0.15),
+                    border: Border.all(color: accent),
+                  ),
+                  child: Center(
+                    child: widget.state == _OptionState.correct
+                        ? Icon(Icons.check, color: AColors.correct, size: 16)
+                        : widget.state == _OptionState.wrong
+                        ? Icon(Icons.close, color: AColors.wrong, size: 16)
+                        : Text(
+                            widget.option.toUpperCase(),
+                            style: GoogleFonts.outfit(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: textCol,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.text,
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      color: textCol,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+                if (widget.state == _OptionState.correct)
+                  const Icon(
+                    Icons.check_circle,
+                    color: AColors.correct,
+                    size: 20,
+                  ),
+                if (widget.state == _OptionState.wrong)
+                  const Icon(Icons.cancel, color: AColors.wrong, size: 20),
+              ],
+            ),
           ),
         ),
         // Floating +XP pill — only when student's own pick was correct
@@ -624,7 +761,8 @@ class _OptionButtonState extends State<_OptionButton>
           AnimatedBuilder(
             animation: _ctrl,
             builder: (_, __) => Positioned(
-              left: 0, right: 0,
+              left: 0,
+              right: 0,
               top: _yAnim.value,
               child: IgnorePointer(
                 child: Opacity(
@@ -632,16 +770,22 @@ class _OptionButtonState extends State<_OptionButton>
                   child: Center(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6),
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF2ECC71),
                         borderRadius: BorderRadius.circular(24),
-                        boxShadow: [BoxShadow(
-                          color: const Color(0xFF2ECC71).withOpacity(0.45),
-                          blurRadius: 10, spreadRadius: 1,
-                        )],
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF2ECC71).withOpacity(0.45),
+                            blurRadius: 10,
+                            spreadRadius: 1,
+                          ),
+                        ],
                       ),
-                      child: Text('+$xpPerCorrectAnswer XP',
+                      child: Text(
+                        '+$xpPerCorrectAnswer XP',
                         style: GoogleFonts.outfit(
                           color: Colors.white,
                           fontSize: 15,
@@ -671,9 +815,13 @@ class _ResultSheet extends StatefulWidget {
   final VoidCallback onDone;
   final VoidCallback? onRetry;
   const _ResultSheet({
-    required this.score, required this.total, required this.xpEarned,
-    required this.isPerfect, required this.lessonTitle,
-    required this.onDone, this.onRetry,
+    required this.score,
+    required this.total,
+    required this.xpEarned,
+    required this.isPerfect,
+    required this.lessonTitle,
+    required this.onDone,
+    this.onRetry,
   });
 
   @override
@@ -690,20 +838,26 @@ class _ResultSheetState extends State<_ResultSheet>
     super.initState();
     if (widget.isPerfect) {
       _confettiCtrl = AnimationController(
-        vsync: this, duration: const Duration(seconds: 3))
-        ..forward();
+        vsync: this,
+        duration: const Duration(seconds: 3),
+      )..forward();
       final rng = Random();
       for (int i = 0; i < 60; i++) {
-        _particles.add(_Particle(
-          x: rng.nextDouble(),
-          delay: rng.nextDouble() * 1.5,
-          speed: 0.3 + rng.nextDouble() * 0.7,
-          color: [
-            const Color(0xFFC9A84C), const Color(0xFF4F8EF7),
-            const Color(0xFF4CAF50), Colors.pinkAccent, Colors.purpleAccent,
-          ][rng.nextInt(5)],
-          size: 4 + rng.nextDouble() * 8,
-        ));
+        _particles.add(
+          _Particle(
+            x: rng.nextDouble(),
+            delay: rng.nextDouble() * 1.5,
+            speed: 0.3 + rng.nextDouble() * 0.7,
+            color: [
+              const Color(0xFFC9A84C),
+              const Color(0xFF4F8EF7),
+              const Color(0xFF4CAF50),
+              Colors.pinkAccent,
+              Colors.purpleAccent,
+            ][rng.nextInt(5)],
+            size: 4 + rng.nextDouble() * 8,
+          ),
+        );
       }
     } else {
       _confettiCtrl = AnimationController(vsync: this);
@@ -723,112 +877,179 @@ class _ResultSheetState extends State<_ResultSheet>
     final resultColor = widget.isPerfect
         ? const Color(0xFFC9A84C)
         : passed
-            ? const Color(0xFF4CAF50)
-            : Colors.redAccent;
+        ? const Color(0xFF4CAF50)
+        : Colors.redAccent;
 
-    return Stack(children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          // Handle
-          Container(
-            width: 40, height: 4,
-            margin: const EdgeInsets.only(bottom: 20),
-            decoration: BoxDecoration(
-              color: context.textDisabled,
-              borderRadius: BorderRadius.circular(2)),
-          ),
-          Text(
-            widget.isPerfect ? '⭐ Perfect Score!' : passed ? '🎉 Well done!' : '📚 Keep going!',
-            style: GoogleFonts.outfit(
-              fontSize: 24, fontWeight: FontWeight.w800, color: context.textPrimary),
-          ),
-          const SizedBox(height: 8),
-          Text(widget.lessonTitle,
-            style: GoogleFonts.outfit(fontSize: 14, color: context.textHint)),
-          const SizedBox(height: 28),
-          // Score circle
-          Container(
-            width: 120, height: 120,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: resultColor.withOpacity(0.1),
-              border: Border.all(color: resultColor, width: 3),
-            ),
-            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Text('${widget.score}/${widget.total}',
-                style: GoogleFonts.outfit(
-                  fontSize: 32, fontWeight: FontWeight.w900, color: resultColor),
-              ),
-              Text('${(pct * 100).toInt()}%',
-                style: GoogleFonts.outfit(fontSize: 14, color: context.textSecondary)),
-            ]),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFC9A84C).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFC9A84C).withOpacity(0.3)),
-            ),
-            child: Text('+${widget.xpEarned} XP earned',
-              style: GoogleFonts.outfit(
-                fontSize: 16, fontWeight: FontWeight.w700,
-                color: const Color(0xFFC9A84C)),
-            ),
-          ),
-          const SizedBox(height: 28),
-          Row(children: [
-            if (widget.onRetry != null) ...[
-              Expanded(child: OutlinedButton(
-                onPressed: widget.onRetry,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: context.textSecondary,
-                  side: BorderSide(color: context.textDisabled),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: Text('Try Again',
-                  style: GoogleFonts.outfit(fontWeight: FontWeight.w600)),
-              )),
-              const SizedBox(width: 12),
-            ],
-            Expanded(child: ElevatedButton(
-              onPressed: widget.onDone,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFC9A84C),
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: Text('Continue',
-                style: GoogleFonts.outfit(
-                  fontSize: 15, fontWeight: FontWeight.w700)),
-            )),
-          ]),
-        ]),
-      ),
-      // Confetti layer
-      if (widget.isPerfect)
-        Positioned.fill(
-          child: IgnorePointer(
-            child: AnimatedBuilder(
-              animation: _confettiCtrl,
-              builder: (_, __) {
-                return CustomPaint(
-                  painter: _ConfettiPainter(
-                    particles: _particles,
-                    progress: _confettiCtrl.value,
-                  ),
-                );
-              },
-            ),
-          ),
+    return SafeArea(
+      top: false,
+      // Mobile Safari can visually overlay its bottom toolbar on the web
+      // viewport. Reserve enough web-only space to keep both actions visible.
+      minimum: EdgeInsets.only(bottom: kIsWeb ? 88 : 20),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewPaddingOf(context).bottom,
         ),
-    ]);
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: context.textDisabled,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Text(
+                    widget.isPerfect
+                        ? '⭐ Perfect Score!'
+                        : passed
+                        ? '🎉 Well done!'
+                        : '📚 Keep going!',
+                    style: GoogleFonts.outfit(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: context.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.lessonTitle,
+                    style: GoogleFonts.outfit(
+                      fontSize: 14,
+                      color: context.textHint,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  // Score circle
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: resultColor.withOpacity(0.1),
+                      border: Border.all(color: resultColor, width: 3),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '${widget.score}/${widget.total}',
+                          style: GoogleFonts.outfit(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            color: resultColor,
+                          ),
+                        ),
+                        Text(
+                          '${(pct * 100).toInt()}%',
+                          style: GoogleFonts.outfit(
+                            fontSize: 14,
+                            color: context.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFC9A84C).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: const Color(0xFFC9A84C).withOpacity(0.3),
+                      ),
+                    ),
+                    child: Text(
+                      '+${widget.xpEarned} XP earned',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFFC9A84C),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Row(
+                    children: [
+                      if (widget.onRetry != null) ...[
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: widget.onRetry,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: context.textSecondary,
+                              side: BorderSide(color: context.textDisabled),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: Text(
+                              'Try Again',
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: widget.onDone,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFC9A84C),
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: Text(
+                            'Continue',
+                            style: GoogleFonts.outfit(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Confetti layer
+            if (widget.isPerfect)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: AnimatedBuilder(
+                    animation: _confettiCtrl,
+                    builder: (_, __) {
+                      return CustomPaint(
+                        painter: _ConfettiPainter(
+                          particles: _particles,
+                          progress: _confettiCtrl.value,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -839,8 +1060,11 @@ class _Particle {
   final Color color;
   final double size;
   const _Particle({
-    required this.x, required this.delay,
-    required this.speed, required this.color, required this.size,
+    required this.x,
+    required this.delay,
+    required this.speed,
+    required this.color,
+    required this.size,
   });
 }
 
@@ -862,7 +1086,11 @@ class _ConfettiPainter extends CustomPainter {
       canvas.translate(x, y);
       canvas.rotate(t * 4 * pi);
       canvas.drawRect(
-        Rect.fromCenter(center: Offset.zero, width: p.size, height: p.size * 0.5),
+        Rect.fromCenter(
+          center: Offset.zero,
+          width: p.size,
+          height: p.size * 0.5,
+        ),
         paint,
       );
       canvas.restore();
