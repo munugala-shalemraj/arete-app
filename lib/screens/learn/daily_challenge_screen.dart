@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +8,7 @@ import '../../models/quiz_question.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/gamification_service.dart';
+import '../../services/feedback_audio_service.dart';
 import '../../services/quiz_service.dart';
 import '../../theme/app_theme.dart';
 
@@ -20,7 +20,7 @@ class DailyChallengeScreen extends StatefulWidget {
 
 class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
   final _service = QuizService();
-  final _audio = AudioPlayer();
+  final _feedbackAudio = FeedbackAudioService();
   List<QuizQuestion> _questions = [];
   bool _loading = true;
   bool _alreadyDone = false;
@@ -44,11 +44,12 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    _audio.dispose();
+    unawaited(_feedbackAudio.dispose());
     super.dispose();
   }
 
   Future<void> _init() async {
+    final audioReady = _feedbackAudio.ready;
     final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now().toIso8601String().substring(0, 10);
     if (prefs.getString('daily_challenge_date') == today) {
@@ -56,6 +57,8 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
       return;
     }
     final questions = await _service.fetchDailyChallenge();
+    await audioReady;
+    if (!mounted) return;
     setState(() { _questions = questions; _loading = false; });
     _startTimer();
   }
@@ -67,7 +70,7 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
       if (!mounted) { t.cancel(); return; }
       if (_timeLeft <= 1) {
         t.cancel();
-        _audio.play(AssetSource('audio/wrong.wav'));
+        _feedbackAudio.play(isCorrect: false);
         setState(() { _timeLeft = 0; _checked = true; _lastCorrect = false; });
         Future.delayed(const Duration(milliseconds: 800), _advance);
       } else {
@@ -80,7 +83,7 @@ class _DailyChallengeScreenState extends State<DailyChallengeScreen> {
     if (_checked || _selected == null) return;
     _timer?.cancel();
     final correct = _questions[_current].isCorrect(_selected!);
-    _audio.play(AssetSource(correct ? 'audio/correct.wav' : 'audio/wrong.wav'));
+    _feedbackAudio.play(isCorrect: correct);
     setState(() {
       _checked = true;
       _lastCorrect = correct;

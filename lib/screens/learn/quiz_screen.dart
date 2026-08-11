@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -14,6 +13,7 @@ import '../../models/quiz_question.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../services/gamification_service.dart';
+import '../../services/feedback_audio_service.dart';
 import '../../services/quiz_service.dart';
 import '../../theme/app_theme.dart';
 
@@ -28,8 +28,7 @@ class QuizScreen extends StatefulWidget {
 class _QuizScreenState extends State<QuizScreen> {
   final _quizService = QuizService();
   final _gamService = GamificationService();
-  final _correctAudioPlayer = AudioPlayer();
-  final _wrongAudioPlayer = AudioPlayer();
+  final _feedbackAudio = FeedbackAudioService();
   late final Future<void> _audioReady;
 
   List<QuizQuestion> _questions = [];
@@ -49,7 +48,7 @@ class _QuizScreenState extends State<QuizScreen> {
   void initState() {
     super.initState();
     _startedAt = DateTime.now().toUtc();
-    _audioReady = _prepareFeedbackAudio();
+    _audioReady = _feedbackAudio.ready;
     SharedPreferences.getInstance().then((prefs) {
       _timerEnabled = prefs.getBool('quiz_timer_enabled') ?? true;
       _load();
@@ -59,27 +58,12 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    _correctAudioPlayer.dispose();
-    _wrongAudioPlayer.dispose();
+    unawaited(_feedbackAudio.dispose());
     super.dispose();
   }
 
-  Future<void> _prepareFeedbackAudio() async {
-    await Future.wait([
-      _correctAudioPlayer.setReleaseMode(ReleaseMode.stop),
-      _wrongAudioPlayer.setReleaseMode(ReleaseMode.stop),
-    ]);
-    await Future.wait([
-      _correctAudioPlayer.setSource(AssetSource('audio/correct.wav')),
-      _wrongAudioPlayer.setSource(AssetSource('audio/wrong.wav')),
-    ]);
-  }
-
   void _playFeedbackSound(bool isCorrect) {
-    final player = isCorrect ? _correctAudioPlayer : _wrongAudioPlayer;
-    // The source is already decoded. Restarting and resuming in one async
-    // chain keeps the sound aligned with the answer/XP animation frame.
-    unawaited(player.stop().then((_) => player.resume()));
+    _feedbackAudio.play(isCorrect: isCorrect);
   }
 
   void _startTimer() {
